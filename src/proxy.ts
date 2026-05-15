@@ -1,34 +1,83 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { createSupabaseServerClient } from "./lib/supabase/server-client";
-/**
- * Next.js proxy (formerly middleware) entry point responsible for basic auth gating.
- *
- * Runtime assumptions due to conflicting docs (Next.js 16):
- * - Proxy runs in the Node.js runtime by default (not Edge)
- * - Node runtime grants access to the shared cookie store used by Supabase
- *
- * What happens per request:
- * - Instantiate the Supabase server client (shares cookies via `NextResponse`)
- * - Call `supabase.auth.getUser()` which refreshes tokens if necessary
- * - Redirect anonymous users away from `/protected` routes to `/login`
- *
- * Add extra path checks or redirects here when you need more complex routing rules.
- */
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { createSupabaseProxyClient } from "@/lib/supabase/proxy-client";
+
+// ── Routes configuration ────────────────────────────────────────────────────
+const AUTH_ROUTES = ["/login", "/signup"];
+const ADMIN_ROUTES_PREFIX = "/admin";
+
+// ── Proxy function (replaces middleware in Next.js 16) ──────────────────────
 export async function proxy(request: NextRequest) {
-  const response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
-  const supabase = await createSupabaseServerClient();
+  const { supabase, response } = createSupabaseProxyClient(request);
+  const { pathname } = request.nextUrl;
+
+  // 1. Refresh the session (updates cookies if tokens were refreshed)
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  console.log({ user });
 
-  // Redirect non-authenticated users away from protected routes
-  if (!user && request.nextUrl.pathname.startsWith("/protected")) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  // ── Auth routes: /login, /signup ──────────────────────────────────────────
+  // If the user is already logged in, redirect them away from auth pages
+  if (AUTH_ROUTES.includes(pathname) && user) {
+    // Check role to decide where to send them
+    const role = await getUserRole(supabase, user.id);
+
+    const destination = role === "admin" ? "/admin" : "/";
+    return NextResponse.redirect(new URL(destination, request.url));
   }
-  return response;
+
+  // ── Admin routes: /admin/* ────────────────────────────────────────────────
+  if (pathname.startsWith(ADMIN_ROUTES_PREFIX)) {
+    // Not logged in → send to login
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    // Logged in but not admin → send to home
+    const role = await getUserRole(supabase, user.id);
+    if (role !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
+  // ── Root route: / ────────────────────────────────────────────────────────
+  // If an admin visits the root, redirect them to /admin
+  if (pathname === "/" && user) {
+    const role = await getUserRole(supabase, user.id);
+    if (role === "admin") {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+  }
+
+  // ── Default: continue to the requested page ──────────────────────────────
+  return response();
 }
+
+// ── Helper: fetch user role from profiles table ─────────────────────────────
+async function getUserRole(
+  supabase: Awaited<ReturnType<typeof createSupabaseProxyClient>>["supabase"],
+  userId: string
+): Promise<string> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+
+  return data?.role ?? "user";
+}
+
+// ── Matcher: only run proxy on relevant routes ──────────────────────────────
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths EXCEPT:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico, sitemap.xml, robots.txt (metadata files)
+     * - public assets (images, svgs, etc.)
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
+};
