@@ -50,6 +50,25 @@ export default async function AdminPage() {
             <span className="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-300 ring-1 ring-indigo-400/30">
               Admin
             </span>
+            <form
+              action={async () => {
+                "use server";
+                const { createSupabaseServerClient } = await import(
+                  "@/lib/supabase/server-client"
+                );
+                const { redirect } = await import("next/navigation");
+                const supabase = await createSupabaseServerClient();
+                await supabase.auth.signOut();
+                redirect("/");
+              }}
+            >
+              <button
+                type="submit"
+                className="flex items-center gap-2 rounded-lg bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-red-500/20 hover:text-red-300 hover:ring-red-400/30"
+              >
+                Sign Out
+              </button>
+            </form>
           </div>
         </div>
 
