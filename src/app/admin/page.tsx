@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export const metadata = {
   title: "Admin — CodeStake",
@@ -116,15 +117,16 @@ export default async function AdminPage() {
               href: "/admin/settings",
             },
           ].map((card) => (
-            <div
+            <Link
               key={card.title}
+              href={card.href}
               className="group rounded-2xl border border-white/10 bg-[#0b0f1e]/80 p-6 backdrop-blur transition hover:border-indigo-400/30 hover:bg-[#0b0f1e]"
             >
               <h2 className="text-lg font-semibold text-white group-hover:text-indigo-300 transition">
                 {card.title}
               </h2>
               <p className="mt-1 text-sm text-slate-400">{card.description}</p>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
