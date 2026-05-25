@@ -87,7 +87,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           .from("profiles")
           .select("role")
           .eq("id", data.user.id)
-          .single();
+          .single() as { data: { role: string } | null };
 
         router.push(profile?.role === "admin" ? "/admin" : "/");
       }
