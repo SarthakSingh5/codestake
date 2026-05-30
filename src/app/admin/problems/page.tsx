@@ -35,7 +35,7 @@ export default async function AdminProblemsPage() {
   const { data: problems } = await supabase
     .from("problems")
     .select("id, title, slug, difficulty, topics, is_published, created_at")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: true });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#02050b] via-[#050c1d] to-[#071426] text-slate-100">
