@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     // ── 5. Execute the code against test cases (via Wandbox) ────────────────
     const result = await executeTestSuite(code, lang.wandboxCompiler, testCases);
 
-    // ── 6. If "submit" mode, save to database ─────────────────────────────
+    // ── 6. If "submit" mode, save to database and evaluate stakes ───────
     if (mode === "submit") {
       await supabase.from("submissions").insert({
         user_id: user.id,
@@ -110,6 +110,34 @@ export async function POST(request: Request) {
         runtime_ms: result.totalTime,
         memory_kb: result.totalMemory,
       });
+
+      // STAKING LOGIC
+      const { data: activeSession } = await supabase
+        .from("stake_sessions")
+        .select("id, expires_at, mode")
+        .eq("user_id", user.id)
+        .eq("problem_id", problemId)
+        .eq("status", "active")
+        .single();
+
+      if (activeSession) {
+        const { resolveStakeSession } = await import("@/app/actions/stake");
+        
+        // 1. Did they run out of time?
+        if (new Date(activeSession.expires_at) < new Date()) {
+           await resolveStakeSession(activeSession.id, "lost");
+           result.verdict = "time_limit"; // Force time limit response
+        } 
+        // 2. Did they win in time?
+        else if (result.verdict === "accepted") {
+           await resolveStakeSession(activeSession.id, "won");
+        }
+        // 3. One Shot Mode Penalty: If they didn't win and they are in One Shot mode, they lose instantly.
+        else if (activeSession.mode === "one_shot") {
+           await resolveStakeSession(activeSession.id, "lost");
+        }
+        // If wrong answer in "time_crunch" but still has time, do nothing.
+      }
     }
 
     // ── 7. Return results ──────────────────────────────────────────────────

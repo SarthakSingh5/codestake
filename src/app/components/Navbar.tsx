@@ -2,8 +2,9 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
 import HardcoreToggle from "./HardcoreToggle";
+import { lazyEvaluateExpiredStakes } from "@/app/actions/stake";
 
-export default async function Navbar() {
+export default async function Navbar({ hideHardcoreToggle = false }: { hideHardcoreToggle?: boolean } = {}) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -11,6 +12,9 @@ export default async function Navbar() {
   let walletBalance = 0;
 
   if (user) {
+    // 1. Lazy evaluation: Instantly fail any expired timers before showing the balance
+    await lazyEvaluateExpiredStakes();
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("is_hardcore_mode_enabled")
@@ -68,7 +72,7 @@ export default async function Navbar() {
           </div>
           
           <div className="flex items-center gap-6">
-            {user && <HardcoreToggle initialEnabled={isHardcoreEnabled} />}
+            {user && !hideHardcoreToggle && <HardcoreToggle initialEnabled={isHardcoreEnabled} />}
             
             {user && (
               <form

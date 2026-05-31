@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import CodeEditor from "./CodeEditor";
 import { LANGUAGES, getDefaultLanguage } from "@/lib/languages";
 
@@ -54,6 +55,9 @@ type Submission = {
 type ProblemWorkspaceProps = {
   problem: Problem;
   exampleTestCases: ExampleTestCase[];
+  isHardcoreModeEnabled: boolean;
+  walletBalance: number;
+  initialActiveSession: any | null;
 };
 
 // ── Difficulty badge colors ──────────────────────────────────────────────────
@@ -63,11 +67,18 @@ const difficultyStyles: Record<string, string> = {
   Hard: "bg-red-500/15 text-red-300 ring-red-400/20",
 };
 
+import { createStakeSession, resolveStakeSession } from "@/app/actions/stake";
+
 // ── Main Component ───────────────────────────────────────────────────────────
 export default function ProblemWorkspace({
   problem,
   exampleTestCases,
+  isHardcoreModeEnabled,
+  walletBalance,
+  initialActiveSession,
 }: ProblemWorkspaceProps) {
+  const router = useRouter();
+  
   // ── State ──────────────────────────────────────────────────────────────────
   const defaultLang = getDefaultLanguage();
   const [selectedLanguage, setSelectedLanguage] = useState(defaultLang.id);
@@ -81,6 +92,42 @@ export default function ProblemWorkspace({
 
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<string>("");
+
+  // ── Hardcore Staking State ─────────────────────────────────────────────────
+  const [activeSession, setActiveSession] = useState<any | null>(initialActiveSession);
+  const [showWagerModal, setShowWagerModal] = useState(isHardcoreModeEnabled && !initialActiveSession);
+  const [stakeAmount, setStakeAmount] = useState<number>(500); // Default $5.00
+  const [stakeMode, setStakeMode] = useState<string>("time_crunch");
+  const [timerDuration, setTimerDuration] = useState<number>(30); // minutes
+  const [isStaking, setIsStaking] = useState(false);
+  const [stakeError, setStakeError] = useState<string | null>(null);
+  // ── Live Countdown Timer ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!activeSession || activeSession.mode !== "time_crunch") return;
+
+    const interval = setInterval(async () => {
+      const now = new Date().getTime();
+      const expiration = new Date(activeSession.expires_at).getTime();
+      const distance = expiration - now;
+
+      if (distance <= 0) {
+        clearInterval(interval);
+        setTimeLeft("00:00");
+        // Auto-fail instantly on the client
+        await resolveStakeSession(activeSession.id, "lost");
+        setActiveSession(null);
+        router.refresh(); // Refresh server components (e.g. Navbar wallet balance)
+        alert("Time is up! You lost your stake.");
+      } else {
+        const minutes = Math.floor(distance / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        setTimeLeft(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeSession]);
 
   // ── Fetch Submissions ──────────────────────────────────────────────────────
   async function fetchSubmissions() {
@@ -183,6 +230,18 @@ export default function ProblemWorkspace({
       setResult(data);
       // Auto-refresh submissions list so the new one appears immediately
       fetchSubmissions();
+
+      // Check if this submission ends the active session
+      if (activeSession) {
+        if (
+          data.verdict === "accepted" ||
+          (activeSession.mode === "one_shot" && data.verdict !== "accepted") ||
+          data.verdict === "time_limit"
+        ) {
+          setActiveSession(null);
+          router.refresh(); // Refresh server components (e.g. Navbar wallet balance)
+        }
+      }
     } catch (e) {
       console.error(e);
       setError("Network error — could not reach the server");
@@ -221,9 +280,151 @@ export default function ProblemWorkspace({
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-1 overflow-hidden">
-      {/* ────────────────────── LEFT PANEL: Problem Description ────────────── */}
-      <div className="w-[45%] min-w-[320px] border-r border-white/10 flex flex-col overflow-hidden">
+    <div className="flex flex-col flex-1 overflow-hidden relative">
+      
+      {/* ────────────────────── STAKE OVERLAY NAVBAR ────────────────────────── */}
+      {activeSession && !showWagerModal && (
+        <div className="fixed top-0 left-0 w-full h-[64px] bg-red-600/95 z-50 flex items-center justify-between px-6 shadow-lg shadow-red-900/20 backdrop-blur-md border-b border-red-500/50">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1 bg-black/30 rounded-full border border-black/20">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <span className="text-sm font-bold text-white tracking-wide">
+                STAKE ACTIVE: ${(activeSession.amount_cents / 100).toFixed(2)}
+              </span>
+              <span className="ml-2 uppercase text-xs tracking-widest text-red-200">
+                ({activeSession.mode.replace("_", " ")})
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            {activeSession.mode === "time_crunch" && (
+              <span className="text-white font-mono text-xl bg-black/40 border border-white/10 px-4 py-1.5 rounded-lg tracking-widest shadow-inner shadow-black/50">
+                {timeLeft || "..."}
+              </span>
+            )}
+            <button 
+              onClick={async () => {
+                if (confirm("Are you sure you want to give up? You will instantly lose your stake!")) {
+                  await resolveStakeSession(activeSession.id, "lost");
+                  setActiveSession(null);
+                  router.refresh(); // Refresh server components
+                }
+              }}
+              className="text-sm font-bold text-white underline decoration-red-300/50 hover:decoration-white transition underline-offset-4"
+            >
+              Give Up (Lose Stake)
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-1 overflow-hidden relative">
+      {/* Hardcore Mode: Wager Modal Overlay (blocks entire screen) */}
+      {showWagerModal && (
+        <div className="absolute inset-0 bg-[#02050b] z-50 flex flex-col items-center justify-center p-6">
+          <div className="bg-[#0b0f1e] border border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-red-900/20 text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-orange-500" />
+            
+            <h2 className="text-2xl font-bold text-white mb-2 flex items-center justify-center gap-2">
+              <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Hardcore Mode
+            </h2>
+            <p className="text-slate-400 text-sm mb-6">
+              You must stake real money to view this problem. Configure your challenge below.
+            </p>
+
+            <div className="bg-white/5 rounded-xl p-4 mb-6 text-left space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Wallet Balance:</span>
+                <span className="text-emerald-400 font-mono font-medium">${(walletBalance / 100).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-400">Your Stake:</span>
+                <select 
+                  value={stakeAmount}
+                  onChange={(e) => setStakeAmount(Number(e.target.value))}
+                  className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white font-mono"
+                >
+                  <option value={100}>$1.00</option>
+                  <option value={500}>$5.00</option>
+                  <option value={1000}>$10.00</option>
+                  <option value={2000}>$20.00</option>
+                </select>
+              </div>
+              <div className="flex justify-between items-center text-sm pt-2 border-t border-white/5">
+                <span className="text-slate-400">Challenge Mode:</span>
+                <select 
+                  value={stakeMode}
+                  onChange={(e) => setStakeMode(e.target.value)}
+                  className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                >
+                  <option value="time_crunch">⏱️ Time Crunch (Unlimited Tries)</option>
+                  <option value="one_shot">🎯 One Shot (1 Try Only)</option>
+                </select>
+              </div>
+              {stakeMode === "time_crunch" && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Timer (minutes):</span>
+                  <input 
+                    type="number"
+                    min="1"
+                    max="1440"
+                    value={timerDuration}
+                    onChange={(e) => setTimerDuration(Number(e.target.value) || 1)}
+                    className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs w-24 text-right"
+                  />
+                </div>
+              )}
+            </div>
+
+            {stakeError && (
+              <div className="text-red-400 text-sm mb-4 bg-red-500/10 py-2 rounded">
+                {stakeError}
+              </div>
+            )}
+
+            <button
+              onClick={async () => {
+                setIsStaking(true);
+                setStakeError(null);
+                try {
+                  // For One Shot, give them a generous 24-hour underlying timer
+                  const finalDuration = stakeMode === "one_shot" ? 1440 : timerDuration;
+                  const session = await createStakeSession(problem.id, stakeAmount, stakeMode, finalDuration);
+                  setActiveSession(session);
+                  setShowWagerModal(false);
+                } catch (err: any) {
+                  setStakeError(err.message || "Failed to start session.");
+                } finally {
+                  setIsStaking(false);
+                }
+              }}
+              disabled={isStaking || walletBalance < stakeAmount}
+              className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3"
+            >
+              {isStaking ? "Locking in..." : `Commit $${(stakeAmount / 100).toFixed(2)}`}
+            </button>
+            <button 
+              onClick={() => router.push('/problems')}
+              className="text-slate-400 hover:text-white text-sm underline transition"
+            >
+              Cancel & Go Back
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Only render workspace if Wager Modal is NOT showing */}
+      {!showWagerModal && (
+        <>
+          {/* ────────────────────── LEFT PANEL: Problem Description ────────────── */}
+          <div className="w-[45%] min-w-[320px] border-r border-white/10 flex flex-col overflow-hidden">
         {/* Tabs */}
         <div className="flex items-center border-b border-white/10 bg-[#0b0f1e]/80">
           <button
@@ -467,12 +668,13 @@ export default function ProblemWorkspace({
         </div>
 
         {/* Monaco Editor */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden relative">
           <CodeEditor
             language={currentLang.monacoLang}
             value={code}
             onChange={setCode}
           />
+
         </div>
 
         {/* ────────── Results Panel (collapsible) ────────── */}
@@ -584,6 +786,9 @@ export default function ProblemWorkspace({
             )}
           </div>
         )}
+      </div>
+      </>
+      )}
       </div>
     </div>
   );

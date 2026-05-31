@@ -67,10 +67,31 @@ export default async function ProblemDetailPage({
     .eq("problem_id", problem.id)
     .order("sort_order", { ascending: true });
 
+  // Hardcore Mode Data
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_hardcore_mode_enabled")
+    .eq("id", user.id)
+    .single();
+
+  const { data: wallet } = await supabase
+    .from("wallets")
+    .select("balance_cents")
+    .eq("user_id", user.id)
+    .single();
+
+  // Fetch active stake session if one exists
+  const { data: activeSession } = await supabase
+    .from("stake_sessions")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("problem_id", problem.id)
+    .eq("status", "active")
+    .single();
+
   return (
     <div className="h-screen bg-[#02050b] text-slate-100 flex flex-col overflow-hidden">
-      <Navbar />
-      {/* ProblemWorkspace fills all remaining space below the navbar */}
+      <Navbar hideHardcoreToggle={true} />
       <ProblemWorkspace
         problem={{
           id: problem.id,
@@ -82,6 +103,9 @@ export default async function ProblemDetailPage({
           topics: (problem.topics as string[]) ?? [],
         }}
         exampleTestCases={exampleTestCases ?? []}
+        isHardcoreModeEnabled={profile?.is_hardcore_mode_enabled ?? false}
+        walletBalance={wallet?.balance_cents ?? 0}
+        initialActiveSession={activeSession || null}
       />
     </div>
   );
