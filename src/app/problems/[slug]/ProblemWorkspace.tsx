@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CodeEditor from "./CodeEditor";
@@ -67,7 +67,7 @@ const difficultyStyles: Record<string, string> = {
   Hard: "bg-red-500/15 text-red-300 ring-red-400/20",
 };
 
-import { createStakeSession, resolveStakeSession } from "@/app/actions/stake";
+import { createStakeSession, failStakeSession } from "@/app/actions/stake";
 
 // ── Main Component ───────────────────────────────────────────────────────────
 export default function ProblemWorkspace({
@@ -83,6 +83,7 @@ export default function ProblemWorkspace({
   const defaultLang = getDefaultLanguage();
   const [selectedLanguage, setSelectedLanguage] = useState(defaultLang.id);
   const [code, setCode] = useState(defaultLang.boilerplate);
+  const lastCodeLength = useRef(defaultLang.boilerplate.length);
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);
@@ -115,7 +116,7 @@ export default function ProblemWorkspace({
         clearInterval(interval);
         setTimeLeft("00:00");
         // Auto-fail instantly on the client
-        await resolveStakeSession(activeSession.id, "lost");
+        await failStakeSession(activeSession.id);
         setActiveSession(null);
         router.refresh(); // Refresh server components (e.g. Navbar wallet balance)
         alert("Time is up! You lost your stake.");
@@ -129,7 +130,57 @@ export default function ProblemWorkspace({
     return () => clearInterval(interval);
   }, [activeSession]);
 
-  // ── Fetch Submissions ──────────────────────────────────────────────────────
+  // ── Global Anti-Cheat Clipboard Block ──────────────────────────────────────
+  useEffect(() => {
+    if (!activeSession) return;
+    
+    const blockClipboard = (e: ClipboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const blockShortcuts = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    window.addEventListener("copy", blockClipboard, true);
+    window.addEventListener("paste", blockClipboard, true);
+    window.addEventListener("cut", blockClipboard, true);
+    window.addEventListener("keydown", blockShortcuts, true);
+
+    return () => {
+      window.removeEventListener("copy", blockClipboard, true);
+      window.removeEventListener("paste", blockClipboard, true);
+      window.removeEventListener("cut", blockClipboard, true);
+      window.removeEventListener("keydown", blockShortcuts, true);
+    };
+  }, [activeSession]);
+
+  // ── Typing Speed Trap ──────────────────────────────────────────────────────
+  const handleCodeChange = async (newCode: string) => {
+    if (activeSession) {
+      const delta = newCode.length - lastCodeLength.current;
+      // If they magically typed more than 15 characters in a single event, they injected a script/pasted
+      if (delta > 15) {
+        try {
+          await failStakeSession(activeSession.id);
+          setActiveSession(null);
+          router.refresh();
+          alert("ANTI-CHEAT TRIGGERED: Impossible typing speed detected. You have lost your stake.");
+        } catch (e) {
+          console.error("Failed to fail session on speed trap", e);
+        }
+        return; // Reject the code change
+      }
+    }
+    setCode(newCode);
+    lastCodeLength.current = newCode.length;
+  };
+
+  // ── Execution / Submissions ──────────────────────────────────────────────────────
   async function fetchSubmissions() {
     setIsLoadingSubmissions(true);
     try {
@@ -158,6 +209,7 @@ export default function ProblemWorkspace({
     if (lang) {
       setSelectedLanguage(langId);
       setCode(lang.boilerplate);
+      lastCodeLength.current = lang.boilerplate.length;
     }
   }
 
@@ -280,7 +332,10 @@ export default function ProblemWorkspace({
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col flex-1 overflow-hidden relative">
+    <div 
+      className="flex flex-col flex-1 overflow-hidden relative"
+      onContextMenu={(e) => { if (activeSession) e.preventDefault(); }}
+    >
       
       {/* ────────────────────── STAKE OVERLAY NAVBAR ────────────────────────── */}
       {activeSession && !showWagerModal && (
@@ -448,7 +503,7 @@ export default function ProblemWorkspace({
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <div className={`flex-1 overflow-y-auto p-5 space-y-5 ${activeSession ? "select-none" : ""}`}>
           {activeTab === "description" ? (
             <>
               {/* Back link */}
@@ -672,9 +727,9 @@ export default function ProblemWorkspace({
           <CodeEditor
             language={currentLang.monacoLang}
             value={code}
-            onChange={setCode}
+            onChange={handleCodeChange}
+            disableClipboard={!!activeSession}
           />
-
         </div>
 
         {/* ────────── Results Panel (collapsible) ────────── */}

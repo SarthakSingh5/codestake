@@ -121,20 +121,21 @@ export async function POST(request: Request) {
         .single();
 
       if (activeSession) {
-        const { resolveStakeSession } = await import("@/app/actions/stake");
+        const { failStakeSession } = await import("@/app/actions/stake");
+        const { internalResolveStakeWin } = await import("@/lib/internalStake");
         
         // 1. Did they run out of time?
         if (new Date(activeSession.expires_at) < new Date()) {
-           await resolveStakeSession(activeSession.id, "lost");
+           await failStakeSession(activeSession.id);
            result.verdict = "time_limit"; // Force time limit response
         } 
         // 2. Did they win in time?
         else if (result.verdict === "accepted") {
-           await resolveStakeSession(activeSession.id, "won");
+           await internalResolveStakeWin(activeSession.id);
         }
         // 3. One Shot Mode Penalty: If they didn't win and they are in One Shot mode, they lose instantly.
         else if (activeSession.mode === "one_shot") {
-           await resolveStakeSession(activeSession.id, "lost");
+           await failStakeSession(activeSession.id);
         }
         // If wrong answer in "time_crunch" but still has time, do nothing.
       }
