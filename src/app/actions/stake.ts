@@ -72,7 +72,7 @@ export async function createStakeSession(problemId: string, amountCents: number,
   return newSession;
 }
 
-export async function failStakeSession(sessionId: string) {
+export async function failStakeSession(sessionId: string, skipRevalidate: boolean = false) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
@@ -97,7 +97,9 @@ export async function failStakeSession(sessionId: string) {
     .update({ status: "lost" })
     .eq("id", sessionId);
 
-  revalidatePath(`/problems/${session.problem_id}`);
+  if (!skipRevalidate) {
+    revalidatePath(`/problems/${session.problem_id}`);
+  }
 }
 
 export async function lazyEvaluateExpiredStakes() {
@@ -116,7 +118,7 @@ export async function lazyEvaluateExpiredStakes() {
 
   if (expiredSessions && expiredSessions.length > 0) {
     for (const session of expiredSessions) {
-      await failStakeSession(session.id);
+      await failStakeSession(session.id, true);
     }
   }
 }

@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Link from "next/link";
+import DepositModal from "./DepositModal";
 
 export const metadata = {
   title: "Wallet — CodeStake",
@@ -79,14 +80,13 @@ export default async function WalletPage() {
               
               <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Available Balance</h2>
               <div className="text-4xl font-bold text-white mb-6">
-                {formatCurrency(balance)}
+                <span className="text-2xl text-slate-400 mr-2">🪙</span>
+                {balance} <span className="text-lg text-slate-500 font-normal">Credits</span>
               </div>
               
-              <button className="mt-auto w-full rounded-lg bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-semibold py-2.5 transition shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)]">
-                Add Funds
-              </button>
+              <DepositModal />
               <p className="text-center text-xs text-slate-500 mt-3">
-                Secure payments via Stripe
+                Secure payments via Stripe & Razorpay
               </p>
             </div>
 
@@ -137,7 +137,7 @@ export default async function WalletPage() {
                       </span>
                     </div>
                     <div className={`text-sm font-bold font-mono ${tx.amount_cents > 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {tx.amount_cents > 0 ? "+" : ""}{formatCurrency(tx.amount_cents)}
+                      {tx.amount_cents > 0 ? "+" : ""}{tx.amount_cents} <span className="text-xs text-slate-500 font-normal">Credits</span>
                     </div>
                   </div>
                 ))}
