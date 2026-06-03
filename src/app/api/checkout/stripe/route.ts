@@ -41,8 +41,8 @@ export async function POST(req: Request) {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: 'CodeStake Credits',
-              description: `${amountCents} CodeStake Credits`,
+              name: 'CodeStake Wallet Deposit',
+              description: `Deposit $${(amountCents / 100).toFixed(2)} USD`,
             },
             unit_amount: finalAmountCents,
           },

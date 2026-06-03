@@ -79,9 +79,9 @@ export default async function WalletPage() {
               <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
               
               <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Available Balance</h2>
-              <div className="text-4xl font-bold text-white mb-6">
-                <span className="text-2xl text-slate-400 mr-2">🪙</span>
-                {balance} <span className="text-lg text-slate-500 font-normal">Credits</span>
+              <div className="text-4xl font-bold text-white mb-6 font-mono tracking-tight">
+                <span className="text-emerald-400 mr-1">$</span>
+                {(balance / 100).toFixed(2)}
               </div>
               
               <DepositModal />
@@ -126,21 +126,24 @@ export default async function WalletPage() {
               </div>
             ) : (
               <div className="divide-y divide-white/5">
-                {transactions.map((tx) => (
-                  <div key={tx.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-white capitalize">
-                        {tx.type.replace("_", " ")}
-                      </span>
-                      <span className="text-xs text-slate-500 mt-0.5">
-                        {formatDate(tx.created_at)}
-                      </span>
+                {transactions.map((tx) => {
+                  const isDeposit = tx.amount_cents > 0;
+                  return (
+                    <div key={tx.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-white capitalize">
+                          {tx.type.replace("_", " ")}
+                        </span>
+                        <span className="text-xs text-slate-500 mt-0.5">
+                          {formatDate(tx.created_at)}
+                        </span>
+                      </div>
+                      <div className={`font-medium font-mono text-right ${isDeposit ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {isDeposit ? '+' : ''}${(Math.abs(tx.amount_cents) / 100).toFixed(2)}
+                      </div>
                     </div>
-                    <div className={`text-sm font-bold font-mono ${tx.amount_cents > 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {tx.amount_cents > 0 ? "+" : ""}{tx.amount_cents} <span className="text-xs text-slate-500 font-normal">Credits</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

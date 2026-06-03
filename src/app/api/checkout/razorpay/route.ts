@@ -17,11 +17,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
     }
 
+    // Pure USD Architecture: amountCents is ALWAYS in USD Cents.
+    // Standard Razorpay (India) requires INR.
+    // 1 USD = 84 INR (Approx). So 1 USD Cent = 84 INR Paise.
+    const usdToInrRate = 84; 
+    const baseInrPaise = amountCents * usdToInrRate;
+
     // Pass the fee to the user.
     // Razorpay India standard domestic fee is 2% + 18% GST on the fee = 2.36%.
-    // To get exactly `amountCents`, we charge `amountCents / (1 - 0.0236)`.
+    // To get exactly `baseInrPaise`, we charge `baseInrPaise / (1 - 0.0236)`.
     const multiplier = 1 / (1 - 0.0236);
-    const finalAmountCents = Math.ceil(amountCents * multiplier);
+    const finalAmountCents = Math.ceil(baseInrPaise * multiplier);
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       return NextResponse.json({ error: 'Razorpay not configured on server' }, { status: 500 });
