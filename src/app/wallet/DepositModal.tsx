@@ -39,6 +39,11 @@ export default function DepositModal() {
       });
       const data = await res.json();
       if (data.url) {
+        // Force the modal to close and reset immediately BEFORE leaving the page
+        // This ensures the browser saves a 'clean' state in memory for the back button
+        setIsOpen(false);
+        setIsLoading(null);
+
         window.location.href = data.url; // Redirect to Stripe
       } else {
         alert("Failed to initialize Stripe: " + (data.error || "Unknown error"));
