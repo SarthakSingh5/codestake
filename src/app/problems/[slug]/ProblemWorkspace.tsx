@@ -364,7 +364,7 @@ export default function ProblemWorkspace({
             <button 
               onClick={async () => {
                 if (confirm("Are you sure you want to give up? You will instantly lose your stake!")) {
-                  await resolveStakeSession(activeSession.id, "lost");
+                  await failStakeSession(activeSession.id);
                   setActiveSession(null);
                   router.refresh(); // Refresh server components
                 }
