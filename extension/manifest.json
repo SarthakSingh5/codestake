@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "CodeStake - Hardcore LeetCode",
+  "version": "1.0.0",
+  "description": "Put real money on the line while practicing LeetCode.",
+  "action": {
+    "default_popup": "index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://leetcode.com/problems/*"],
+      "js": ["src/content.tsx"]
+    }
+  ],
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://codestake-zeta.vercel.app/*",
+    "http://localhost:3000/*"
+  ]
+}
