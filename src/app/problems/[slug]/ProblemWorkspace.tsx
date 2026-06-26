@@ -406,10 +406,10 @@ export default function ProblemWorkspace({
                     onChange={(e) => setStakeAmount(Number(e.target.value))}
                     className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white font-mono"
                   >
-                    <option value={100}>$1.00</option>
-                    <option value={500}>$5.00</option>
-                    <option value={1000}>$10.00</option>
-                    <option value={2000}>$20.00</option>
+                    <option value={100} disabled={walletBalance < 100}>$1.00</option>
+                    <option value={500} disabled={walletBalance < 500}>$5.00</option>
+                    <option value={1000} disabled={walletBalance < 1000}>$10.00</option>
+                    <option value={2000} disabled={walletBalance < 2000}>$20.00</option>
                   </select>
                 </div>
                 <div className="flex justify-between items-center text-sm pt-2 border-t border-white/5">
@@ -444,27 +444,36 @@ export default function ProblemWorkspace({
                 </div>
               )}
 
-              <button
-                onClick={async () => {
-                  setIsStaking(true);
-                  setStakeError(null);
-                  try {
-                    // For One Shot, give them a generous 24-hour underlying timer
-                    const finalDuration = stakeMode === "one_shot" ? 1440 : timerDuration;
-                    const session = await createStakeSession(problem.id, stakeAmount, stakeMode, finalDuration);
-                    setActiveSession(session);
-                    setShowWagerModal(false);
-                  } catch (err: any) {
-                    setStakeError(err.message || "Failed to start session.");
-                  } finally {
-                    setIsStaking(false);
-                  }
-                }}
-                disabled={isStaking || walletBalance < stakeAmount}
-                className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3"
-              >
-                {isStaking ? "Locking in..." : `Commit $${(stakeAmount / 100).toFixed(2)}`}
-              </button>
+              {walletBalance === 0 ? (
+                <button
+                  onClick={() => router.push('/wallet')}
+                  className="w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(100,116,139,0.4)] mb-3"
+                >
+                  Add Funds to Wallet
+                </button>
+              ) : (
+                <button
+                  onClick={async () => {
+                    setIsStaking(true);
+                    setStakeError(null);
+                    try {
+                      // For One Shot, give them a generous 24-hour underlying timer
+                      const finalDuration = stakeMode === "one_shot" ? 1440 : timerDuration;
+                      const session = await createStakeSession(problem.id, stakeAmount, stakeMode, finalDuration);
+                      setActiveSession(session);
+                      setShowWagerModal(false);
+                    } catch (err: any) {
+                      setStakeError(err.message || "Failed to start session.");
+                    } finally {
+                      setIsStaking(false);
+                    }
+                  }}
+                  disabled={isStaking || walletBalance < stakeAmount}
+                  className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3"
+                >
+                  {isStaking ? "Locking in..." : `Commit $${(stakeAmount / 100).toFixed(2)}`}
+                </button>
+              )}
               <button
                 onClick={() => router.push('/problems')}
                 className="text-slate-400 hover:text-white text-sm underline transition"

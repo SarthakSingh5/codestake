@@ -56,6 +56,12 @@ export default async function Navbar({ hideHardcoreToggle = false }: { hideHardc
                 >
                   Problems
                 </Link>
+                <Link
+                  href="/extension"
+                  className="rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition"
+                >
+                  Extension
+                </Link>
                 {user && (
                   <Link
                     href="/wallet"

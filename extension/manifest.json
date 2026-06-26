@@ -3,13 +3,15 @@
   "name": "CodeStake - Hardcore LeetCode",
   "version": "1.0.0",
   "description": "Put real money on the line while practicing LeetCode.",
-  "action": {
-    "default_popup": "index.html"
-  },
+  "action": {},
   "content_scripts": [
     {
       "matches": ["*://leetcode.com/problems/*"],
       "js": ["src/content.tsx"]
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/website-sync.ts"]
     }
   ],
   "background": {
@@ -23,6 +25,13 @@
   ],
   "host_permissions": [
     "https://codestake-zeta.vercel.app/*",
-    "http://localhost:3000/*"
-  ]
+    "http://localhost/*"
+  ],
+  "externally_connectable": {
+    "matches": [
+      "https://codestake-zeta.vercel.app/*",
+      "http://localhost/*",
+      "*://localhost/*"
+    ]
+  }
 }
