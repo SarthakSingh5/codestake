@@ -2,10 +2,15 @@ import { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 
-type UIState = 'HIDDEN' | 'MINIMIZED' | 'NOTIFICATION' | 'MODAL' | 'UNAUTHENTICATED';
+type UIState = 'HIDDEN' | 'MINIMIZED' | 'NOTIFICATION' | 'MODAL' | 'UNAUTHENTICATED' | 'TRACKING';
 
 function CodeStakeOverlay() {
   const [uiState, setUiState] = useState<UIState>('HIDDEN'); // Start hidden until we check auth
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeSessionMode, setActiveSessionMode] = useState<string>("time_crunch");
+  const [timerEndMs, setTimerEndMs] = useState<number | null>(null);
+  const [timerString, setTimerString] = useState<string>("--:--");
+
   const [stakeAmount, setStakeAmount] = useState<number>(500);
   const [stakeMode, setStakeMode] = useState<string>("time_crunch");
   const [timerDuration, setTimerDuration] = useState<number>(30);
@@ -44,13 +49,41 @@ function CodeStakeOverlay() {
     }
   }, []);
 
+  // Check for active session on load
+  useEffect(() => {
+    if (!userId) return;
+    
+    const problemSlug = window.location.pathname.split("/")[2];
+    if (!problemSlug) return;
+
+    chrome.runtime.sendMessage(
+      {
+        action: 'fetch_api',
+        url: `http://localhost:3000/api/extension/session?userId=${userId}&problemSlug=${problemSlug}`
+      },
+      (response) => {
+        if (response?.data?.activeSession) {
+          const session = response.data.activeSession;
+          setActiveSessionId(session.id);
+          setActiveSessionMode(session.mode);
+          if (session.mode === 'time_crunch' && session.expires_at) {
+            setTimerEndMs(new Date(session.expires_at).getTime());
+          }
+          setUiState('TRACKING');
+        }
+      }
+    );
+  }, [userId]);
+
   // Listen for extension icon click to unhide
   useEffect(() => {
     const messageListener = (request: any) => {
       if (request.action === 'toggle_ui') {
         setUiState(prev => {
           if (prev === 'HIDDEN') {
-            return userId ? 'MINIMIZED' : 'UNAUTHENTICATED';
+            if (!userId) return 'UNAUTHENTICATED';
+            if (activeSessionId) return 'TRACKING';
+            return 'MINIMIZED';
           }
           return 'HIDDEN';
         });
@@ -58,7 +91,110 @@ function CodeStakeOverlay() {
     };
     chrome.runtime.onMessage.addListener(messageListener);
     return () => chrome.runtime.onMessage.removeListener(messageListener);
-  }, [userId]);
+  }, [userId, activeSessionId]);
+
+  // Timer Tick Logic
+  useEffect(() => {
+    let interval: any;
+    if (uiState === 'TRACKING' && timerEndMs) {
+      interval = setInterval(() => {
+        const remaining = timerEndMs - Date.now();
+        if (remaining <= 0) {
+          setTimerString("00:00");
+          clearInterval(interval);
+          
+          // Force the backend to fail it immediately
+          if (activeSessionId) {
+            chrome.runtime.sendMessage(
+              {
+                action: 'fetch_api',
+                url: "http://localhost:3000/api/extension/resolve",
+                options: {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    userId,
+                    sessionId: activeSessionId,
+                    verdict: "EXPIRED"
+                  })
+                }
+              },
+              (response) => {
+                if (response?.data?.success && response.data.resolvedAs === "lost_expired") {
+                  alert("⌛ TIME'S UP! Your stake is lost.");
+                  setActiveSessionId(null);
+                  setUiState('MINIMIZED');
+                }
+              }
+            );
+          }
+        } else {
+          const mins = Math.floor(remaining / 60000);
+          const secs = Math.floor((remaining % 60000) / 1000);
+          setTimerString(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [uiState, timerEndMs]);
+
+  // Listen for Interceptor Messages
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'CODESTAKE_SUBMISSION_RESULT') {
+        if (!activeSessionId) return; // Ignore if no active bet
+
+        const verdict = event.data.verdict;
+        console.log("[CodeStake Content] Interceptor reported verdict:", verdict);
+
+        // Call the resolve API
+        chrome.runtime.sendMessage(
+          {
+            action: 'fetch_api',
+            url: "http://localhost:3000/api/extension/resolve",
+            options: {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userId,
+                sessionId: activeSessionId,
+                verdict: verdict
+              })
+            }
+          },
+          (response) => {
+            if (!response?.ok) {
+              console.error("Resolve API failed:", response);
+              return;
+            }
+
+            const data = response.data;
+            if (data.success) {
+              if (data.resolvedAs === "won") {
+                alert("🎉 YOU DID IT! Your stake has been refunded to your wallet!");
+                setActiveSessionId(null);
+                setUiState('MINIMIZED');
+              } else if (data.resolvedAs === "lost_one_shot") {
+                alert("❌ WRONG ANSWER. You were playing One Shot. Your stake is lost.");
+                setActiveSessionId(null);
+                setUiState('MINIMIZED');
+              } else if (data.resolvedAs === "lost_expired") {
+                alert("⌛ TIME'S UP! Your stake is lost.");
+                setActiveSessionId(null);
+                setUiState('MINIMIZED');
+              } else if (data.resolvedAs === "continue") {
+                // Do nothing, they can keep trying (Time Crunch)
+                console.log("Time crunch - keep trying!");
+              }
+            }
+          }
+        );
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [activeSessionId, userId]);
 
   // Fetch balance when modal opens
   useEffect(() => {
@@ -182,6 +318,45 @@ function CodeStakeOverlay() {
     );
   }
 
+  // ── 2.5 The TRACKING State (Active Bet) ──
+  if (uiState === 'TRACKING') {
+    return (
+      <div className="fixed bottom-6 right-6 z-[99999] flex items-end gap-3 font-sans">
+        <div className="bg-[#0b0f1e] border border-red-500/80 p-4 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.4)] text-white w-64 animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="text-sm font-bold text-red-500 animate-pulse flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+              Active Session
+            </h3>
+            <button 
+              onClick={() => setUiState('HIDDEN')}
+              className="text-slate-500 hover:text-white transition"
+              title="Hide panel (won't cancel bet)"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+          
+          <div className="bg-black/50 rounded-lg p-3 border border-red-500/30 mb-2">
+            <div className="flex justify-between text-xs text-slate-400 mb-1">
+              <span>Mode</span>
+              <span className="text-white font-mono">{activeSessionMode === 'one_shot' ? '🎯 One Shot' : '⏱️ Time Crunch'}</span>
+            </div>
+            {activeSessionMode === 'time_crunch' && (
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs text-slate-400">Time Left</span>
+                <span className="text-xl font-mono font-bold text-red-400 font-tabular-nums">{timerString}</span>
+              </div>
+            )}
+          </div>
+          <p className="text-[10px] text-slate-500 text-center uppercase tracking-wider">
+            Money is on the line. Do not give up.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // ── 3. The Main Wager Modal (Centered) ──
   if (uiState === 'MODAL') {
     return (
@@ -295,9 +470,14 @@ function CodeStakeOverlay() {
                         return;
                       }
                       
+                      
                       // On success
-                      alert(`Stake Placed Successfully! (${response.data.session.id})\nTracking will be built later.`);
-                      setUiState('MINIMIZED');
+                      setActiveSessionId(response.data.session.id);
+                      setActiveSessionMode(stakeMode);
+                      if (stakeMode === 'time_crunch') {
+                        setTimerEndMs(Date.now() + timerDuration * 60000);
+                      }
+                      setUiState('TRACKING');
                     }
                   );
                   
@@ -325,6 +505,14 @@ function CodeStakeOverlay() {
 
   return null;
 }
+
+// Inject the Interceptor Script into the page DOM
+const script = document.createElement('script');
+script.src = chrome.runtime.getURL('src/interceptor.js');
+script.onload = () => {
+  script.remove(); // Remove tag after it executes to stay clean
+};
+(document.head || document.documentElement).appendChild(script);
 
 // Inject React into the existing website
 const root = document.createElement('div');

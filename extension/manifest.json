@@ -33,5 +33,11 @@
       "http://localhost/*",
       "*://localhost/*"
     ]
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/interceptor.js"],
+      "matches": ["*://leetcode.com/*"]
+    }
+  ]
 }
