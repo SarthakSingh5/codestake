@@ -42,7 +42,7 @@ function CodeStakeOverlay() {
         setUiState('NOTIFICATION');
       }
     };
-    
+
     if (chrome.storage && chrome.storage.onChanged) {
       chrome.storage.onChanged.addListener(storageListener);
       return () => chrome.storage.onChanged.removeListener(storageListener);
@@ -52,7 +52,7 @@ function CodeStakeOverlay() {
   // Check for active session on load
   useEffect(() => {
     if (!userId) return;
-    
+
     const problemSlug = window.location.pathname.split("/")[2];
     if (!problemSlug) return;
 
@@ -102,7 +102,7 @@ function CodeStakeOverlay() {
         if (remaining <= 0) {
           setTimerString("00:00");
           clearInterval(interval);
-          
+
           // Force the backend to fail it immediately
           if (activeSessionId) {
             chrome.runtime.sendMessage(
@@ -196,6 +196,85 @@ function CodeStakeOverlay() {
     return () => window.removeEventListener('message', handleMessage);
   }, [activeSessionId, userId]);
 
+  // ── Global Anti-Cheat Clipboard Block & Speed Trap ───────────
+  useEffect(() => {
+    if (uiState !== 'TRACKING' || !activeSessionId) return;
+
+    const blockClipboard = (e: ClipboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    };
+
+    const blockShortcuts = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }
+    };
+
+    // Typing Speed Trap (Detects AutoHotkey or macro scripts)
+    // (Note: A DOM MutationObserver on Monaco causes false positives when scrolling)
+    let keyPressTimestamps: number[] = [];
+    const handleTypingSpeed = (e: KeyboardEvent) => {
+      // Ignore modifier keys
+      if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'].includes(e.key)) return;
+
+      const now = Date.now();
+      keyPressTimestamps.push(now);
+      
+      if (keyPressTimestamps.length > 15) {
+        keyPressTimestamps.shift();
+      }
+
+      if (keyPressTimestamps.length === 15) {
+        const timeFor15Chars = keyPressTimestamps[14] - keyPressTimestamps[0];
+        // If 15 characters were typed in under 200 milliseconds, it's a bot/script!
+        if (timeFor15Chars < 200) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          
+          // BUSTED! Force resolve as CHEATING
+          chrome.runtime.sendMessage({
+            action: 'fetch_api',
+            url: "http://localhost:3000/api/extension/resolve",
+            options: {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userId,
+                sessionId: activeSessionId,
+                verdict: "CHEATED" 
+              })
+            }
+          }, () => {
+            alert("🚨 ANTI-CHEAT TRIGGERED: Superhuman typing speed detected. You lost your stake.");
+            setActiveSessionId(null);
+            setUiState('MINIMIZED');
+          });
+          keyPressTimestamps = []; // Reset to prevent spamming
+        }
+      }
+    };
+
+    // Use capture phase (true) to intercept it before LeetCode's editor gets it
+    window.addEventListener("copy", blockClipboard, true);
+    window.addEventListener("paste", blockClipboard, true);
+    window.addEventListener("cut", blockClipboard, true);
+    window.addEventListener("keydown", blockShortcuts, true);
+    window.addEventListener("keydown", handleTypingSpeed, true);
+
+    return () => {
+      window.removeEventListener("copy", blockClipboard, true);
+      window.removeEventListener("paste", blockClipboard, true);
+      window.removeEventListener("cut", blockClipboard, true);
+      window.removeEventListener("keydown", blockShortcuts, true);
+      window.removeEventListener("keydown", handleTypingSpeed, true);
+    };
+  }, [uiState, activeSessionId, userId]);
+
   // Fetch balance when modal opens
   useEffect(() => {
     if (uiState === 'MODAL' && userId) {
@@ -210,7 +289,7 @@ function CodeStakeOverlay() {
             setFetchError("Extension communication failed: " + chrome.runtime.lastError.message);
             return;
           }
-          
+
           if (response?.error) {
             setFetchError(response.error);
             return;
@@ -245,7 +324,7 @@ function CodeStakeOverlay() {
     return (
       <div className="fixed bottom-6 right-6 z-[99999] flex items-end gap-3 font-sans">
         <div className="bg-[#0b0f1e] border border-red-500/30 p-4 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.2)] text-white w-64 animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
-          <button 
+          <button
             onClick={() => setUiState('HIDDEN')}
             className="absolute top-2 right-2 text-slate-500 hover:text-white transition"
           >
@@ -253,7 +332,7 @@ function CodeStakeOverlay() {
           </button>
           <h3 className="text-sm font-bold text-slate-200 mb-1">CodeStake Setup</h3>
           <p className="text-xs text-slate-400 mb-3">Please link your account to start betting.</p>
-          <button 
+          <button
             onClick={() => {
               // Open the CodeStake website to trigger the silent handshake
               window.open("http://localhost:3000/extension", "_blank");
@@ -271,11 +350,11 @@ function CodeStakeOverlay() {
   if (uiState === 'NOTIFICATION' || uiState === 'MINIMIZED') {
     return (
       <div className="fixed bottom-6 right-6 z-[99999] flex items-end gap-3 font-sans">
-        
+
         {/* Notification Bubble (Only shows in NOTIFICATION state) */}
         {uiState === 'NOTIFICATION' && (
           <div className="bg-[#0b0f1e] border border-red-500/30 p-4 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.2)] text-white w-64 animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
-            <button 
+            <button
               onClick={() => setUiState('MINIMIZED')}
               className="absolute top-2 right-2 text-slate-500 hover:text-white transition"
               title="Close notification"
@@ -284,7 +363,7 @@ function CodeStakeOverlay() {
             </button>
             <h3 className="text-sm font-bold text-slate-200 mb-1">Want to spice things up?</h3>
             <p className="text-xs text-slate-400 mb-3">Stake real money on this problem.</p>
-            <button 
+            <button
               onClick={() => setUiState('MODAL')}
               className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-1.5 rounded text-sm transition shadow-[0_0_10px_rgba(220,38,38,0.4)]"
             >
@@ -295,14 +374,14 @@ function CodeStakeOverlay() {
 
         {/* The Small Floating Icon */}
         <div className="relative flex flex-col items-center">
-          <button 
+          <button
             onClick={() => setUiState('HIDDEN')}
             className="absolute -top-2 -right-2 bg-slate-800 border border-slate-600 rounded-full p-0.5 text-slate-400 hover:text-white hover:bg-red-500 hover:border-red-500 transition z-10"
             title="Hide CodeStake (Click extension icon to restore)"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
-          <button 
+          <button
             onClick={() => setUiState('MODAL')}
             className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.6)] hover:scale-105 hover:bg-red-500 transition-all group relative"
           >
@@ -328,7 +407,7 @@ function CodeStakeOverlay() {
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
               Active Session
             </h3>
-            <button 
+            <button
               onClick={() => setUiState('HIDDEN')}
               className="text-slate-500 hover:text-white transition"
               title="Hide panel (won't cancel bet)"
@@ -336,7 +415,7 @@ function CodeStakeOverlay() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
           </div>
-          
+
           <div className="bg-black/50 rounded-lg p-3 border border-red-500/30 mb-2">
             <div className="flex justify-between text-xs text-slate-400 mb-1">
               <span>Mode</span>
@@ -363,7 +442,7 @@ function CodeStakeOverlay() {
       <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
         <div className="bg-[#0b0f1e] border border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-red-900/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-orange-500" />
-          
+
           <h2 className="text-2xl font-bold text-white mb-2 flex items-center justify-center gap-2">
             <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -400,45 +479,45 @@ function CodeStakeOverlay() {
               </select>
             </div>
             {stakeMode === "time_crunch" && (
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-400">Timer (minutes):</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="1440"
-                    value={timerDuration}
-                    onChange={(e) => setTimerDuration(Number(e.target.value) || 1)}
-                    className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs w-24 text-right outline-none focus:border-red-500"
-                  />
-                </div>
-              )}
-            </div>
-
-            {fetchError && (
-              <div className="text-red-400 text-sm mb-4 bg-red-500/10 border border-red-500/20 py-2 px-3 rounded text-left">
-                <strong>Connection Error:</strong> {fetchError}
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-400">Timer (minutes):</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="1440"
+                  value={timerDuration}
+                  onChange={(e) => setTimerDuration(Number(e.target.value) || 1)}
+                  className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs w-24 text-right outline-none focus:border-red-500"
+                />
               </div>
             )}
+          </div>
 
-            {walletBalance === 0 ? (
-            <button 
+          {fetchError && (
+            <div className="text-red-400 text-sm mb-4 bg-red-500/10 border border-red-500/20 py-2 px-3 rounded text-left">
+              <strong>Connection Error:</strong> {fetchError}
+            </div>
+          )}
+
+          {walletBalance === 0 ? (
+            <button
               onClick={() => window.open("http://localhost:3000/wallet", "_blank")}
               className="w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(100,116,139,0.4)] mb-3"
             >
               Add Funds to Wallet
             </button>
           ) : (
-            <button 
+            <button
               onClick={async () => {
                 if (walletBalance !== null && walletBalance < stakeAmount) {
                   alert("Insufficient funds for this stake amount.");
                   return;
                 }
-                
+
                 setIsCommitting(true);
                 try {
                   const problemSlug = window.location.pathname.split("/")[2] || "unknown-problem";
-                  
+
                   chrome.runtime.sendMessage(
                     {
                       action: 'fetch_api',
@@ -469,8 +548,8 @@ function CodeStakeOverlay() {
                         alert("Error: " + (response?.data?.error || "Failed to commit stake"));
                         return;
                       }
-                      
-                      
+
+
                       // On success
                       setActiveSessionId(response.data.session.id);
                       setActiveSessionMode(stakeMode);
@@ -480,7 +559,7 @@ function CodeStakeOverlay() {
                       setUiState('TRACKING');
                     }
                   );
-                  
+
                 } catch (err: any) {
                   alert("Error: " + err.message);
                   setIsCommitting(false);
@@ -492,7 +571,7 @@ function CodeStakeOverlay() {
               {isCommitting ? "Committing..." : `Commit $${(stakeAmount / 100).toFixed(2)}`}
             </button>
           )}
-          <button 
+          <button
             onClick={() => setUiState('MINIMIZED')}
             className="text-slate-400 hover:text-white text-sm underline transition"
           >
