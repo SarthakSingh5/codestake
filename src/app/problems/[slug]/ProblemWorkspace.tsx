@@ -105,11 +105,11 @@ export default function ProblemWorkspace({
   const [stakeError, setStakeError] = useState<string | null>(null);
   // ── Live Countdown Timer ───────────────────────────────────────────────────
   useEffect(() => {
-    if (!activeSession || activeSession.mode !== "time_crunch") return;
+    if (!activeSession || activeSession.mode !== "time_crunch" || !activeSession.expires_at) return;
 
     const interval = setInterval(async () => {
       const now = new Date().getTime();
-      const expiration = new Date(activeSession.expires_at).getTime();
+      const expiration = new Date(activeSession.expires_at!).getTime();
       const distance = expiration - now;
 
       if (distance <= 0) {

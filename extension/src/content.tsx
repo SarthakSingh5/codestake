@@ -68,6 +68,8 @@ function CodeStakeOverlay() {
           setActiveSessionMode(session.mode);
           if (session.mode === 'time_crunch' && session.expires_at) {
             setTimerEndMs(new Date(session.expires_at).getTime());
+          } else {
+            setTimerEndMs(0);
           }
           setUiState('TRACKING');
         }
@@ -555,6 +557,8 @@ function CodeStakeOverlay() {
                       setActiveSessionMode(stakeMode);
                       if (stakeMode === 'time_crunch') {
                         setTimerEndMs(Date.now() + timerDuration * 60000);
+                      } else {
+                        setTimerEndMs(0); // Clear any old timer
                       }
                       setUiState('TRACKING');
                     }

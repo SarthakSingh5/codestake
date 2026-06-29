@@ -104,7 +104,7 @@ export async function POST(request: Request) {
         amount_cents: amountCents,
         mode: mode,
         status: "active",
-        expires_at: expiresAt.toISOString()
+        expires_at: mode === 'one_shot' ? null : expiresAt.toISOString()
       })
       .select()
       .single();

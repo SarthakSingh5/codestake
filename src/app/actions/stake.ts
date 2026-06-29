@@ -58,7 +58,7 @@ export async function createStakeSession(problemId: string, amountCents: number,
       amount_cents: amountCents,
       mode: mode,
       status: "active",
-      expires_at: expiresAt.toISOString()
+      expires_at: mode === 'one_shot' ? null : expiresAt.toISOString()
     })
     .select()
     .single();
@@ -114,6 +114,7 @@ export async function lazyEvaluateExpiredStakes() {
     .select("*")
     .eq("user_id", user.id)
     .eq("status", "active")
+    .not("expires_at", "is", null)
     .lt("expires_at", now);
 
   if (expiredSessions && expiredSessions.length > 0) {

@@ -37,8 +37,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Session not found or already resolved" }, { status: 404, headers: corsHeaders });
     }
 
-    // 2. Check if the session has expired natively OR the client explicitly reported expiration
-    if (verdict === "EXPIRED" || new Date(session.expires_at) < new Date()) {
+    // 2. Determine final status
+    if (verdict === "EXPIRED" || (session.expires_at && new Date(session.expires_at) < new Date())) {
+      // LOST: Time expired
        await failStakeSession(session.id);
        return NextResponse.json({ success: true, resolvedAs: "lost_expired" }, { headers: corsHeaders });
     }

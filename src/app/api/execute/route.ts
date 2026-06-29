@@ -125,7 +125,7 @@ export async function POST(request: Request) {
         const { internalResolveStakeWin } = await import("@/lib/internalStake");
         
         // 1. Did they run out of time?
-        if (new Date(activeSession.expires_at) < new Date()) {
+        if (activeSession.expires_at && new Date(activeSession.expires_at) < new Date()) {
            await failStakeSession(activeSession.id);
            result.verdict = "time_limit"; // Force time limit response
         } 
