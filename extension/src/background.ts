@@ -50,8 +50,14 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === 'fetch_api') {
     fetch(request.url, request.options)
       .then(async (res) => {
-        const data = await res.json();
-        sendResponse({ ok: res.ok, status: res.status, data });
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          sendResponse({ ok: res.ok, status: res.status, data });
+        } catch (parseError) {
+          console.error("Non-JSON response from server:", res.status, text.substring(0, 100));
+          sendResponse({ ok: res.ok, status: res.status, data: { error: `Server returned HTML (Status ${res.status}) instead of JSON.` } });
+        }
       })
       .catch((err) => {
         console.error("CodeStake Background Fetch Error:", err);
