@@ -27,6 +27,25 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     });
   }
 
+  // Memory Wipe Trap: Securely set the session in in-memory storage (cleared if extension disabled)
+  if (request.action === 'mark_session_active') {
+    chrome.storage.session.set({ [`cs_session_${request.sessionId}`]: true }, () => {
+      console.log(`CodeStake Background: Memory Wipe Trap armed for session ${request.sessionId}`);
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
+  // Memory Wipe Trap: Check if the session is still in memory
+  if (request.action === 'check_memory_wipe') {
+    chrome.storage.session.get([`cs_session_${request.sessionId}`], (result) => {
+      const isIntact = result[`cs_session_${request.sessionId}`] === true;
+      console.log(`CodeStake Background: Memory Wipe Check for ${request.sessionId}: Intact? ${isIntact}`);
+      sendResponse({ wiped: !isIntact });
+    });
+    return true;
+  }
+
   // Proxy API requests to bypass Private Network Access (PNA) blocks on leetcode.com
   if (request.action === 'fetch_api') {
     fetch(request.url, request.options)

@@ -64,14 +64,37 @@ function CodeStakeOverlay() {
       (response) => {
         if (response?.data?.activeSession) {
           const session = response.data.activeSession;
-          setActiveSessionId(session.id);
-          setActiveSessionMode(session.mode);
-          if (session.mode === 'time_crunch' && session.expires_at) {
-            setTimerEndMs(new Date(session.expires_at).getTime());
-          } else {
-            setTimerEndMs(0);
-          }
-          setUiState('TRACKING');
+          
+          // Anti-Cheat: The Memory Wipe Trap
+          chrome.runtime.sendMessage({ action: 'check_memory_wipe', sessionId: session.id }, (wipeRes) => {
+            if (wipeRes?.wiped) {
+               // BUSTED! Force resolve as CHEATING
+               chrome.runtime.sendMessage({
+                 action: 'fetch_api',
+                 url: "http://localhost:3000/api/extension/resolve",
+                 options: {
+                   method: "POST",
+                   headers: { "Content-Type": "application/json" },
+                   body: JSON.stringify({ userId, sessionId: session.id, verdict: "CHEATED" })
+                 }
+               }, () => {
+                 alert("🚨 ANTI-CHEAT TRIGGERED: Extension was disabled or browser closed during an active stake! You lost your stake.");
+                 setActiveSessionId(null);
+                 setUiState('MINIMIZED');
+               });
+               return; // Do not resume the session!
+            }
+
+            // Memory is intact, resume normally
+            setActiveSessionId(session.id);
+            setActiveSessionMode(session.mode);
+            if (session.mode === 'time_crunch' && session.expires_at) {
+              setTimerEndMs(new Date(session.expires_at).getTime());
+            } else {
+              setTimerEndMs(0);
+            }
+            setUiState('TRACKING');
+          });
         }
       }
     );
@@ -553,7 +576,10 @@ function CodeStakeOverlay() {
 
 
                       // On success
-                      setActiveSessionId(response.data.session.id);
+                      const newSessionId = response.data.session.id;
+                      chrome.runtime.sendMessage({ action: 'mark_session_active', sessionId: newSessionId });
+                      
+                      setActiveSessionId(newSessionId);
                       setActiveSessionMode(stakeMode);
                       if (stakeMode === 'time_crunch') {
                         setTimerEndMs(Date.now() + timerDuration * 60000);
