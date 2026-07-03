@@ -27,24 +27,18 @@ export async function createStakeSession(problemId: string, amountCents: number,
 
   const adminClient = createSupabaseAdminClient();
 
-  // 2. ATOMIC ESCROW: Instantly deduct the money from the wallet.
-  // This completely stops race conditions and infinite stake exploits.
-  const { data: deductSuccess, error: rpcError } = await adminClient.rpc('deduct_wallet_balance', {
-    p_user_id: user.id,
-    p_amount: amountCents
-  });
+  // 2. The Code of Omerta: Check for unpaid debt
+  const { data: wallet } = await adminClient
+    .from("wallets")
+    .select("balance_cents")
+    .eq("user_id", user.id)
+    .single();
 
-  if (rpcError || !deductSuccess) {
-    throw new Error("Insufficient funds or transaction failed");
+  if (!wallet || wallet.balance_cents < 0) {
+    throw new Error("You have broken the Code. Honor your debt to return to the arena.");
   }
 
-  // 3. Log the transaction
-  await adminClient.from("transactions").insert({
-    user_id: user.id,
-    amount_cents: -amountCents,
-    type: "stake_placed",
-    reference_id: problemId
-  });
+  // 3. No upfront escrow! The user only pays if they fail.
 
   // 4. Create the session
   const expiresAt = new Date();
@@ -91,11 +85,32 @@ export async function failStakeSession(sessionId: string, skipRevalidate: boolea
   const adminClient = createSupabaseAdminClient();
 
   // Update session status to lost. 
-  // We do NOT deduct money here because it was already taken in escrow!
   await adminClient
     .from("stake_sessions")
     .update({ status: "lost" })
     .eq("id", sessionId);
+
+  // THE PENALTY: Deduct money from their wallet (creating debt)
+  const { error: debtError } = await adminClient.rpc('incur_debt', {
+    p_user_id: user.id,
+    p_amount: session.amount_cents
+  });
+  
+  if (debtError) {
+    console.error("FATAL: Failed to incur debt for user", user.id, debtError);
+  }
+
+  // Log the loss transaction
+  const { error: txError } = await adminClient.from("transactions").insert({
+    user_id: user.id,
+    amount_cents: -session.amount_cents,
+    type: "stake_lost",
+    reference_id: session.problem_id
+  });
+
+  if (txError) {
+    console.error("FATAL: Failed to log transaction for user", user.id, txError);
+  }
 
   if (!skipRevalidate) {
     revalidatePath(`/problems/${session.problem_id}`);

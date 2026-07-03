@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         }, { onConflict: 'platform,slug' })
         .select("id")
         .single();
-        
+
       if (insertError || !newProblem) {
         console.error("Failed to auto-import problem:", insertError);
         return NextResponse.json({ error: "Failed to auto-import problem. " + insertError?.message }, { status: 500, headers: corsHeaders });
@@ -73,24 +73,18 @@ export async function POST(request: Request) {
     if (existing) {
       return NextResponse.json({ error: "Active session already exists" }, { status: 400, headers: corsHeaders });
     }
+    // 2. The Code of Omerta: Check for unpaid debt
+    const { data: wallet } = await adminClient
+      .from("wallets")
+      .select("balance_cents")
+      .eq("user_id", userId)
+      .single();
 
-    // 2. ATOMIC ESCROW: Instantly deduct the money from the wallet.
-    const { data: deductSuccess, error: rpcError } = await adminClient.rpc('deduct_wallet_balance', {
-      p_user_id: userId,
-      p_amount: amountCents
-    });
-
-    if (rpcError || !deductSuccess) {
-      return NextResponse.json({ error: "Insufficient funds or transaction failed" }, { status: 400, headers: corsHeaders });
+    if (!wallet || wallet.balance_cents < 0) {
+      return NextResponse.json({ error: "You have broken the Code. Honor your debt to return to the arena." }, { status: 403, headers: corsHeaders });
     }
 
-    // 3. Log the transaction
-    await adminClient.from("transactions").insert({
-      user_id: userId,
-      amount_cents: -amountCents,
-      type: "stake_placed",
-      reference_id: actualProblemId
-    });
+    // 3. No upfront escrow! The user only pays if they fail.
 
     // 4. Create the session
     const expiresAt = new Date();
