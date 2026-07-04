@@ -81,10 +81,10 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
               onChange={(e) => setStakeAmount(Number(e.target.value))}
               className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white font-mono outline-none focus:border-red-500"
             >
-              <option value={100} disabled={walletBalance !== null && walletBalance < 100}>$1.00</option>
-              <option value={500} disabled={walletBalance !== null && walletBalance < 500}>$5.00</option>
-              <option value={1000} disabled={walletBalance !== null && walletBalance < 1000}>$10.00</option>
-              <option value={2000} disabled={walletBalance !== null && walletBalance < 2000}>$20.00</option>
+              <option value={100}>$1.00</option>
+              <option value={500}>$5.00</option>
+              <option value={1000}>$10.00</option>
+              <option value={2000}>$20.00</option>
             </select>
           </div>
           <div className="flex justify-between items-center text-sm pt-2 border-t border-white/5">
@@ -119,21 +119,16 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
           </div>
         )}
 
-        {walletBalance === 0 ? (
+        {walletBalance !== null && walletBalance < 0 ? (
           <button
             onClick={() => window.open("http://localhost:3000/wallet", "_blank")}
-            className="w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(100,116,139,0.4)] mb-3"
+            className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3 uppercase tracking-wider"
           >
-            Add Funds to Wallet
+            Honor Your Debt
           </button>
         ) : (
           <button
             onClick={async () => {
-              if (walletBalance !== null && walletBalance < stakeAmount) {
-                alert("Insufficient funds for this stake amount.");
-                return;
-              }
-
               setIsCommitting(true);
               try {
                 const problemSlug = window.location.pathname.split("/")[2] || "unknown-problem";
@@ -188,8 +183,8 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                 setIsCommitting(false);
               }
             }}
-            disabled={isCommitting || walletBalance === null}
-            className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isCommitting}
+            className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3"
           >
             {isCommitting ? "Committing..." : `Commit $${(stakeAmount / 100).toFixed(2)}`}
           </button>

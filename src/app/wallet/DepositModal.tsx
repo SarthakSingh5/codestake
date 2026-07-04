@@ -4,9 +4,8 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Script from "next/script";
 
-export default function DepositModal() {
+export default function HonorDebtModal({ debtAmountCents }: { debtAmountCents: number }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [amountString, setAmountString] = useState("5.00");
   const [isLoading, setIsLoading] = useState<"stripe" | "razorpay" | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -27,7 +26,7 @@ export default function DepositModal() {
     };
   }, []);
 
-  const amountCents = Math.max(500, Math.floor(parseFloat(amountString || "0") * 100));
+  const amountCents = debtAmountCents;
 
   const handleStripe = async () => {
     setIsLoading("stripe");
@@ -105,7 +104,7 @@ export default function DepositModal() {
     }
   };
 
-  const isAmountValid = parseFloat(amountString || "0") >= 5;
+  // The amount is always valid because it's hardcoded to their exact debt!
 
   return (
     <>
@@ -113,73 +112,62 @@ export default function DepositModal() {
 
       <button
         onClick={() => setIsOpen(true)}
-        className="mt-auto w-full rounded-lg bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-semibold py-2.5 transition shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)]"
+        className="mt-auto w-full rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold py-2.5 transition shadow-[0_0_15px_rgba(220,38,38,0.4)] hover:shadow-[0_0_25px_rgba(220,38,38,0.6)] uppercase tracking-wider"
       >
-        Deposit Funds
+        Honor Debt
       </button>
 
       {mounted && isOpen && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0b0f1e] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden flex flex-col shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#0b0f1e] border border-red-500/30 rounded-2xl w-full max-w-md overflow-hidden flex flex-col shadow-2xl relative">
+            
+            {/* Dark red glow */}
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-              <h2 className="text-xl font-bold text-white">Deposit Funds</h2>
+            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02] relative z-10">
+              <h2 className="text-xl font-bold text-red-500 uppercase tracking-wide">The Code is Broken</h2>
               <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white transition">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="p-6">
-              <label className="block text-sm font-medium text-slate-400 mb-2">Amount (USD)</label>
-              <div className="relative mb-6">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <span className="text-slate-400 text-lg">$</span>
+            <div className="p-6 relative z-10">
+              <div className="text-center mb-6">
+                <p className="text-slate-300 text-sm mb-4">
+                  You made a commitment to yourself, and you broke it. A true engineer stands by their word. Settle your tab to restore your honor.
+                </p>
+                <div className="text-4xl font-mono font-bold text-white tracking-tight">
+                  <span className="text-slate-500 mr-1">$</span>
+                  {(amountCents / 100).toFixed(2)}
                 </div>
-                <input
-                  type="number"
-                  min="5"
-                  step="0.01"
-                  value={amountString}
-                  onChange={(e) => setAmountString(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-8 pr-4 text-white text-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition"
-                  placeholder="5.00"
-                />
               </div>
 
-              <div className="bg-slate-900/50 rounded-lg p-4 mb-6 text-sm text-slate-300">
+              <div className="bg-red-950/30 border border-red-900/50 rounded-lg p-4 mb-6 text-sm text-red-200/70">
                 <div className="flex justify-between mb-1">
-                  <span>Base Deposit:</span>
-                  <span className="font-mono">${isAmountValid ? (amountCents / 100).toFixed(2) : "0.00"}</span>
+                  <span>Penalty Due:</span>
+                  <span className="font-mono text-red-400">${(amountCents / 100).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between mb-1 text-slate-500 text-xs">
                   <span>Processing Fee:</span>
                   <span>Added at checkout</span>
                 </div>
-                <div className="flex justify-between font-medium text-white pt-2 border-t border-white/10 mt-2">
-                  <span>Your Wallet Receives:</span>
-                  <span className="font-mono text-emerald-400">${isAmountValid ? (amountCents / 100).toFixed(2) : "0.00"}</span>
-                </div>
               </div>
-
-              {!isAmountValid && (
-                <p className="text-red-400 text-sm mb-4 text-center">Minimum deposit is $5.00</p>
-              )}
 
               <div className="space-y-3">
                 <button
                   onClick={handleRazorpay}
-                  disabled={isLoading !== null || !isAmountValid}
-                  className="w-full relative py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading !== null}
+                  className="w-full relative py-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading === "razorpay" ? "Loading..." : "Pay with Razorpay (India)"}
+                  {isLoading === "razorpay" ? "Processing..." : "Pay with Razorpay (India)"}
                 </button>
 
                 <button
                   onClick={handleStripe}
-                  disabled={isLoading !== null || !isAmountValid}
-                  className="w-full relative py-3 rounded-lg bg-[#635BFF] hover:bg-[#5249e5] text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading !== null}
+                  className="w-full relative py-3 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(220,38,38,0.3)]"
                 >
-                  {isLoading === "stripe" ? "Loading..." : "Pay with Stripe (Global)"}
+                  {isLoading === "stripe" ? "Processing..." : "Pay with Stripe (Global)"}
                 </button>
               </div>
             </div>

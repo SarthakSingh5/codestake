@@ -78,16 +78,36 @@ export default async function WalletPage() {
               {/* Subtle green glow inside card */}
               <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
               
-              <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Available Balance</h2>
-              <div className="text-4xl font-bold text-white mb-6 font-mono tracking-tight">
-                <span className="text-emerald-400 mr-1">$</span>
-                {(balance / 100).toFixed(2)}
+              <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Current Debt</h2>
+              <div className="text-4xl font-bold text-white mb-6 font-mono tracking-tight flex items-center">
+                {balance < 0 ? (
+                  <>
+                    <span className="text-red-500 mr-1">-$</span>
+                    {Math.abs(balance / 100).toFixed(2)}
+                  </>
+                ) : (
+                  <>
+                    <span className="text-emerald-400 mr-1">$</span>
+                    0.00
+                  </>
+                )}
               </div>
               
-              <DepositModal />
-              <p className="text-center text-xs text-slate-500 mt-3">
-                Secure payments via Stripe & Razorpay
-              </p>
+              {balance < 0 ? (
+                <>
+                  <DepositModal debtAmountCents={Math.abs(balance)} />
+                  <p className="text-center text-xs text-red-400 mt-3 font-semibold">
+                    You are banished from the arena until paid.
+                  </p>
+                </>
+              ) : (
+                <div className="mt-auto bg-emerald-500/10 border border-emerald-500/20 rounded-lg py-3 px-4 text-center">
+                  <span className="text-emerald-400 text-sm font-semibold uppercase tracking-wider flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    Clean Slate
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Info Card */}
@@ -96,19 +116,19 @@ export default async function WalletPage() {
               <ul className="space-y-3 text-sm text-slate-300">
                 <li className="flex items-start gap-2">
                   <span className="text-emerald-400 mt-0.5">✓</span>
-                  <span><strong>Deposit money</strong> to fund your accountability stakes.</span>
+                  <span><strong>No Upfront Fees.</strong> Place a stake instantly without depositing money.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-emerald-400 mt-0.5">✓</span>
-                  <span><strong>Stake your money</strong> on a problem to lock yourself in.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-400 mt-0.5">✓</span>
-                  <span><strong>Solve it</strong> in time, and your money is completely safe.</span>
+                  <span><strong>Solve it</strong> in time, and your honor is intact. No money is lost.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-400 mt-0.5">✗</span>
-                  <span><strong>Fail or give up</strong>, and you lose the stake. No excuses.</span>
+                  <span><strong>Fail or give up</strong>, and you incur a financial penalty (debt).</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-400 mt-0.5">✗</span>
+                  <span><strong>The Banishment:</strong> If you owe a debt, you are permanently locked out of the arena until you pay.</span>
                 </li>
               </ul>
             </div>
