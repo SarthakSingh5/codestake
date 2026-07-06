@@ -190,6 +190,9 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                     const newSessionId = response.data.session.id;
                     chrome.runtime.sendMessage({ action: 'mark_session_active', sessionId: newSessionId });
 
+                    // WIPE THE EDITOR TO PREVENT CHEATING WITH PREVIOUSLY PASTED CODE
+                    window.postMessage({ type: 'CODESTAKE_CLEAR_EDITOR' }, '*');
+
                     setActiveSessionId(newSessionId);
                     setActiveSessionMode(stakeMode);
                     if (stakeMode === 'time_crunch') {

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
 
+export const dynamic = 'force-dynamic';
+
 // Allow CORS for the extension
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
