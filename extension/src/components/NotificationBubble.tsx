@@ -9,7 +9,7 @@ export function NotificationBubble({ uiState, setUiState }: Props) {
   return (
     <div className="fixed bottom-6 right-6 z-[99999] flex items-end gap-3 font-sans">
       {uiState === 'NOTIFICATION' && (
-        <div className="bg-[#0b0f1e] border border-red-500/30 p-4 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.2)] text-white w-64 animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
+        <div className="bg-[#0b0f1e] border border-emerald-500/30 p-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] text-white w-64 animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
           <button
             onClick={() => setUiState('MINIMIZED')}
             className="absolute top-2 right-2 text-slate-500 hover:text-white transition"
@@ -21,7 +21,7 @@ export function NotificationBubble({ uiState, setUiState }: Props) {
           <p className="text-xs text-slate-400 mb-3">Stake real money on this problem.</p>
           <button
             onClick={() => setUiState('MODAL')}
-            className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-1.5 rounded text-sm transition shadow-[0_0_10px_rgba(220,38,38,0.4)]"
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 rounded text-sm transition shadow-[0_0_10px_rgba(16,185,129,0.4)]"
           >
             Put money on the table
           </button>
@@ -38,9 +38,9 @@ export function NotificationBubble({ uiState, setUiState }: Props) {
         </button>
         <button
           onClick={() => setUiState('MODAL')}
-          className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.6)] hover:scale-105 hover:bg-red-500 transition-all group relative"
+          className="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.6)] hover:scale-105 hover:bg-emerald-500 transition-all group relative"
         >
-          <span className="absolute w-full h-full rounded-full border border-red-500 animate-ping opacity-75"></span>
+          <span className="absolute w-full h-full rounded-full border border-emerald-500 animate-ping opacity-75"></span>
           <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>

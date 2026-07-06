@@ -15,6 +15,7 @@ function CodeStakeOverlay() {
   const [activeSessionMode, setActiveSessionMode] = useState<string>("time_crunch");
   const [timerEndMs, setTimerEndMs] = useState<number | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [popupMsg, setPopupMsg] = useState<{type: 'win' | 'fail', text: string} | null>(null);
 
   // Initialize Auth
   useEffect(() => {
@@ -112,6 +113,11 @@ function CodeStakeOverlay() {
 
   // Listen for Interceptor Verdicts (Win/Loss)
   useEffect(() => {
+    const handlePopup = (e: any) => {
+      setPopupMsg(e.detail);
+    };
+    window.addEventListener('CODESTAKE_POPUP', handlePopup);
+    
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'CODESTAKE_SUBMISSION_RESULT') {
         if (!activeSessionId) return;
@@ -135,15 +141,15 @@ function CodeStakeOverlay() {
             const data = response.data;
             if (data.success) {
               if (data.resolvedAs === "won") {
-                alert("🎉 YOU DID IT! Your stake has been refunded to your wallet!");
+                window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'win', text: "VICTORY: Stake Refunded." } }));
                 setActiveSessionId(null);
                 setUiState('MINIMIZED');
               } else if (data.resolvedAs === "lost_one_shot") {
-                alert("❌ WRONG ANSWER. You were playing One Shot. Your stake is lost.");
+                window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'fail', text: "Wrong Answer. Stake Lost." } }));
                 setActiveSessionId(null);
                 setUiState('MINIMIZED');
               } else if (data.resolvedAs === "lost_expired") {
-                alert("⌛ TIME'S UP! Your stake is lost.");
+                window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'fail', text: "Timer Expired. Stake Lost." } }));
                 setActiveSessionId(null);
                 setUiState('MINIMIZED');
               }
@@ -153,7 +159,10 @@ function CodeStakeOverlay() {
       }
     };
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('CODESTAKE_POPUP', handlePopup);
+    };
   }, [activeSessionId, userId]);
 
   // Use Custom Hooks for Logic
@@ -184,6 +193,31 @@ function CodeStakeOverlay() {
           setActiveSessionMode={setActiveSessionMode}
           setTimerEndMs={setTimerEndMs}
         />
+      )}
+
+      {popupMsg && (
+        <div className="fixed bottom-6 right-6 z-[999999] animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className={`p-4 rounded shadow-2xl border font-sans w-80 text-left relative overflow-hidden ${
+            popupMsg.type === 'win' 
+              ? 'bg-[#0f1a14] border-green-500/50 shadow-green-900/20 text-green-400' 
+              : 'bg-[#1a0f0f] border-red-500/50 shadow-red-900/20 text-red-400'
+          }`}>
+            <h3 className="font-bold text-lg mb-1 uppercase tracking-wider">
+              {popupMsg.type === 'win' ? 'VICTORY' : 'DEFEAT'}
+            </h3>
+            <p className="text-sm opacity-90 mb-4">{popupMsg.text}</p>
+            <button 
+              onClick={() => setPopupMsg(null)}
+              className={`w-full py-2 rounded text-sm font-bold uppercase tracking-widest transition-colors ${
+                popupMsg.type === 'win'
+                  ? 'bg-green-600 hover:bg-green-500 text-white'
+                  : 'bg-red-600 hover:bg-red-500 text-white'
+              }`}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
       )}
     </>
   );

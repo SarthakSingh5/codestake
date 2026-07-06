@@ -58,16 +58,47 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
   if (uiState !== 'MODAL') return null;
 
+  if (walletBalance !== null && walletBalance < 0) {
+    return (
+      <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
+        <div className="bg-[#0b0f1e] border border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-red-900/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-orange-500" />
+          
+          <h2 className="text-2xl font-bold text-red-500 mb-2 uppercase tracking-wider">
+            You lose
+          </h2>
+          <p className="text-slate-400 text-sm mb-6 uppercase tracking-widest">
+            now please honor the code of omerta
+          </p>
+          
+          <button
+            onClick={() => window.open("http://localhost:3000/wallet", "_blank")}
+            className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3 uppercase tracking-wider"
+          >
+            be a man of word
+          </button>
+          
+          <button
+            onClick={() => setUiState('HIDDEN')}
+            className="text-slate-500 hover:text-red-500 text-xs font-bold uppercase tracking-widest underline transition-colors"
+          >
+            i quit and will never come here again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
-      <div className="bg-[#0b0f1e] border border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-red-900/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-orange-500" />
+      <div className="bg-[#0b0f1e] border border-emerald-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-emerald-900/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-400" />
 
         <h2 className="text-2xl font-bold text-white mb-2 flex items-center justify-center gap-2">
-          <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          Hardcore Mode
+          CodeStake Mode
         </h2>
         <p className="text-slate-400 text-sm mb-6">
           Configure your challenge below. You must pass all test cases to win.
@@ -79,7 +110,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
             <select
               value={stakeAmount}
               onChange={(e) => setStakeAmount(Number(e.target.value))}
-              className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white font-mono outline-none focus:border-red-500"
+              className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white font-mono outline-none focus:border-emerald-500"
             >
               <option value={100}>$1.00</option>
               <option value={500}>$5.00</option>
@@ -92,7 +123,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
             <select
               value={stakeMode}
               onChange={(e) => setStakeMode(e.target.value)}
-              className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs outline-none focus:border-red-500"
+              className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs outline-none focus:border-emerald-500"
             >
               <option value="time_crunch">⏱️ Time Crunch</option>
               <option value="one_shot">🎯 One Shot (1 Try)</option>
@@ -107,7 +138,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                 max="1440"
                 value={timerDuration}
                 onChange={(e) => setTimerDuration(Number(e.target.value) || 1)}
-                className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs w-24 text-right outline-none focus:border-red-500"
+                className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs w-24 text-right outline-none focus:border-emerald-500"
               />
             </div>
           )}
@@ -119,15 +150,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
           </div>
         )}
 
-        {walletBalance !== null && walletBalance < 0 ? (
-          <button
-            onClick={() => window.open("http://localhost:3000/wallet", "_blank")}
-            className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3 uppercase tracking-wider"
-          >
-            Honor Your Debt
-          </button>
-        ) : (
-          <button
+        <button
             onClick={async () => {
               setIsCommitting(true);
               try {
@@ -184,11 +207,10 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
               }
             }}
             disabled={isCommitting}
-            className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3"
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(16,185,129,0.4)] mb-3"
           >
             {isCommitting ? "Committing..." : `Commit $${(stakeAmount / 100).toFixed(2)}`}
           </button>
-        )}
         <button
           onClick={() => setUiState('MINIMIZED')}
           className="text-slate-400 hover:text-white text-sm underline transition"

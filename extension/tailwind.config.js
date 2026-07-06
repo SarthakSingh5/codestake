@@ -4,6 +4,10 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  important: '#codestake-extension-root',
+  corePlugins: {
+    preflight: false,
+  },
   theme: {
     extend: {},
   },

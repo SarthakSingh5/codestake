@@ -26,7 +26,7 @@ export function useSessionTimer(uiState: UIState, timerEndMs: number | null, act
               },
               (response) => {
                 if (response?.data?.success && response.data.resolvedAs === "lost_expired") {
-                  alert("⌛ TIME'S UP! Your stake is lost.");
+                  window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'fail', text: "Timer Expired. Stake Lost." } }));
                   setActiveSessionId(null);
                   setUiState('MINIMIZED');
                 }
