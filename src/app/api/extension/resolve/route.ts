@@ -24,42 +24,63 @@ export async function POST(request: Request) {
 
     const adminClient = createSupabaseAdminClient();
 
-    // 1. Verify the session belongs to the user and is active
-    const { data: session } = await adminClient
-      .from("stake_sessions")
-      .select("*")
-      .eq("id", sessionId)
-      .eq("user_id", userId)
-      .eq("status", "active")
-      .single();
+    // 1. Determine if this is a Quick Play session or a Challenge Contract
+    if (sessionId) {
+      // --- QUICK PLAY SESSION LOGIC ---
+      const { data: session } = await adminClient
+        .from("stake_sessions")
+        .select("*")
+        .eq("id", sessionId)
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .single();
 
-    if (!session) {
-      return NextResponse.json({ error: "Session not found or already resolved" }, { status: 404, headers: corsHeaders });
-    }
-
-    // 2. Determine final status
-    if (verdict === "EXPIRED" || (session.expires_at && new Date(session.expires_at) < new Date())) {
-      // LOST: Time expired
-       await failStakeSession(session.id);
-       return NextResponse.json({ success: true, resolvedAs: "lost_expired" }, { headers: corsHeaders });
-    }
-
-    // 3. Process the verdict
-    if (verdict === "Accepted") {
-      // The user successfully solved it! Call the secure internal win function.
-      await internalResolveStakeWin(session.id);
-      return NextResponse.json({ success: true, resolvedAs: "won" }, { headers: corsHeaders });
-    } 
-    else {
-      // The user failed (Wrong Answer, Runtime Error, etc)
-      if (session.mode === "one_shot") {
-        // One Shot: Instant failure
-        await failStakeSession(session.id);
-        return NextResponse.json({ success: true, resolvedAs: "lost_one_shot" }, { headers: corsHeaders });
-      } else {
-        // Time Crunch: They can keep trying until the timer runs out
-        return NextResponse.json({ success: true, resolvedAs: "continue" }, { headers: corsHeaders });
+      if (!session) {
+        return NextResponse.json({ error: "Session not found or already resolved" }, { status: 404, headers: corsHeaders });
       }
+
+      if (verdict === "EXPIRED" || (session.expires_at && new Date(session.expires_at) < new Date())) {
+         await failStakeSession(session.id);
+         return NextResponse.json({ success: true, resolvedAs: "lost_expired" }, { headers: corsHeaders });
+      }
+
+      if (verdict === "Accepted") {
+        await internalResolveStakeWin(session.id);
+        return NextResponse.json({ success: true, resolvedAs: "won" }, { headers: corsHeaders });
+      } else {
+        if (session.mode === "one_shot") {
+          await failStakeSession(session.id);
+          return NextResponse.json({ success: true, resolvedAs: "lost_one_shot" }, { headers: corsHeaders });
+        } else {
+          return NextResponse.json({ success: true, resolvedAs: "continue" }, { headers: corsHeaders });
+        }
+      }
+    } else {
+      // --- MACRO STAKE (CONTRACT) LOGIC ---
+      if (verdict === "Accepted") {
+        // Fetch active contract
+        const { data: contract } = await adminClient
+          .from("challenge_contracts")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .single();
+
+        if (contract) {
+          // Increment problems solved today
+          await adminClient
+            .from("challenge_contracts")
+            .update({ 
+              problems_solved_today: contract.problems_solved_today + 1,
+              total_problems_solved: contract.total_problems_solved + 1,
+              last_updated_at: new Date().toISOString()
+            })
+            .eq("id", contract.id);
+
+          return NextResponse.json({ success: true, resolvedAs: "contract_progress" }, { headers: corsHeaders });
+        }
+      }
+      return NextResponse.json({ success: true, resolvedAs: "continue" }, { headers: corsHeaders });
     }
 
   } catch (error) {
