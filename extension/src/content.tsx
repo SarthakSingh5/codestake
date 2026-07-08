@@ -46,49 +46,44 @@ function CodeStakeOverlay() {
     }
   }, []);
 
-  // Restore Session on Load
+  // Restore Session & Run Universal Wipe
   useEffect(() => {
     if (!userId) return;
     const problemSlug = window.location.pathname.split("/")[2];
     if (!problemSlug) return;
 
     chrome.runtime.sendMessage(
-      {
-        action: 'fetch_api',
-        url: `http://localhost:3000/api/extension/session?userId=${userId}&problemSlug=${problemSlug}`
-      },
+      { action: 'fetch_api', url: `http://localhost:3000/api/extension/session?userId=${userId}&problemSlug=${problemSlug}` },
       (response) => {
+        let hasActiveChallenge = false;
+        
         if (response?.data?.activeSession) {
+          hasActiveChallenge = true;
           const session = response.data.activeSession;
-          
-          chrome.runtime.sendMessage({ action: 'check_memory_wipe', sessionId: session.id }, (wipeRes) => {
-            if (wipeRes?.wiped) {
-               chrome.runtime.sendMessage({
-                 action: 'fetch_api',
-                 url: "http://localhost:3000/api/extension/resolve",
-                 options: {
-                   method: "POST",
-                   headers: { "Content-Type": "application/json" },
-                   body: JSON.stringify({ userId, sessionId: session.id, verdict: "CHEATED" })
-                 }
-               }, () => {
-                 alert("🚨 ANTI-CHEAT TRIGGERED: Extension was disabled or browser closed during an active stake! You lost your stake.");
-                 setActiveSessionId(null);
-                 setUiState('MINIMIZED');
-               });
-               return; 
+          setActiveSessionId(session.id);
+          setActiveSessionMode(session.mode);
+          if (session.mode === 'time_crunch' && session.expires_at) {
+            setTimerEndMs(new Date(session.expires_at).getTime());
+          } else {
+            setTimerEndMs(0);
+          }
+          setUiState('TRACKING');
+        }
+
+        // Also check if they have an active Macro-Stake (Blood Pact / Gauntlet)
+        chrome.runtime.sendMessage(
+          { action: 'fetch_api', url: `http://localhost:3000/api/extension/contracts?userId=${userId}` },
+          (contractRes) => {
+            if (contractRes?.data?.contract) {
+              hasActiveChallenge = true;
             }
 
-            setActiveSessionId(session.id);
-            setActiveSessionMode(session.mode);
-            if (session.mode === 'time_crunch' && session.expires_at) {
-              setTimerEndMs(new Date(session.expires_at).getTime());
-            } else {
-              setTimerEndMs(0);
+            if (hasActiveChallenge) {
+              // Universal Editor Wipe: If you turned the extension off to paste code, it is destroyed now.
+              window.postMessage({ type: 'CODESTAKE_CLEAR_EDITOR' }, '*');
             }
-            setUiState('TRACKING');
-          });
-        }
+          }
+        );
       }
     );
   }, [userId]);

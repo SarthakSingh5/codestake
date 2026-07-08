@@ -16,7 +16,7 @@ async function run() {
   console.log("Fetching a wallet...");
   const userId = "b6d68ba0-3976-4f8b-803a-e4c61f3bfa67";
   console.log("Found user ID:", userId);
-  
+
   console.log("Injecting $1000.00 (100000 cents)...");
 
   const { data: addSuccess, error: rpcError } = await adminClient.rpc('add_wallet_balance', {
@@ -27,7 +27,7 @@ async function run() {
   if (rpcError) {
     console.error("RPC Error:", rpcError);
   }
-  
+
   const { data: balance } = await adminClient.from("wallets").select("balance_cents").eq("user_id", userId).single();
   console.log("New Wallet Balance in Cents:", balance?.balance_cents);
 }

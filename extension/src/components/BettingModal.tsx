@@ -32,18 +32,25 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
   useEffect(() => {
     if (uiState === 'MODAL' && userId) {
-      // Fetch Wallet
-      chrome.runtime.sendMessage(
-        { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}` },
-        (res) => {
-          if (res?.data?.balanceCents !== undefined) setWalletBalance(res.data.balanceCents);
-        }
-      );
-      // Fetch Active Contract
+      // Fetch Active Contract (which triggers Lazy Evaluation sweep in backend)
       chrome.runtime.sendMessage(
         { action: 'fetch_api', url: `http://localhost:3000/api/extension/contracts?userId=${userId}` },
-        (res) => {
-          if (res?.data?.contract) setActiveContract(res.data.contract);
+        (contractRes) => {
+          if (contractRes?.data?.contract) {
+            setActiveContract(contractRes.data.contract);
+          } else {
+            setActiveContract(null);
+          }
+          
+          // Now fetch Wallet (guarantees sweep debt is reflected)
+          chrome.runtime.sendMessage(
+            { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}` },
+            (walletRes) => {
+              if (walletRes?.data?.balanceCents !== undefined) {
+                setWalletBalance(walletRes.data.balanceCents);
+              }
+            }
+          );
         }
       );
     }

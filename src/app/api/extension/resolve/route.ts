@@ -67,6 +67,13 @@ export async function POST(request: Request) {
           .single();
 
         if (contract) {
+          if (new Date(contract.expires_at) < new Date()) {
+            // Timezone/Late Exploit Blocked: Timer expired before this submission.
+            await adminClient.rpc('incur_debt', { p_user_id: userId, p_amount: contract.penalty_cents });
+            await adminClient.from("challenge_contracts").update({ status: 'failed' }).eq("id", contract.id);
+            return NextResponse.json({ success: true, resolvedAs: "lost_expired" }, { headers: corsHeaders });
+          }
+
           // Increment problems solved today
           await adminClient
             .from("challenge_contracts")

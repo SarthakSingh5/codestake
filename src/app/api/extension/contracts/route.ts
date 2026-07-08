@@ -32,8 +32,64 @@ export async function GET(request: Request) {
       .eq('status', 'active')
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" which is fine
+    if (error && error.code !== 'PGRST116') {
       throw new Error(error.message);
+    }
+
+    if (contract) {
+      const now = new Date();
+      const expiresAt = new Date(contract.expires_at);
+
+      if (now > expiresAt) {
+        // LAZY EVALUATION: Contract timer has expired!
+        
+        if (contract.problems_solved_today < contract.target_problems_per_day) {
+          // FAILURE: Did not meet quota
+          await supabase.rpc('incur_debt', {
+            p_user_id: userId,
+            p_amount: contract.penalty_cents
+          });
+          
+          await supabase.from('challenge_contracts')
+            .update({ status: 'failed' })
+            .eq('id', contract.id);
+            
+          return NextResponse.json({ contract: null }, { status: 200, headers: corsHeaders });
+        } else {
+          // SUCCESS: Met the quota for the day/gauntlet
+          if (contract.mode === 'blood_pact') {
+            if (contract.current_day < contract.target_days) {
+              // Advance to next day
+              const nextExpiresAt = new Date(expiresAt);
+              nextExpiresAt.setHours(nextExpiresAt.getHours() + 24);
+              
+              const { data: updatedContract } = await supabase.from('challenge_contracts')
+                .update({
+                  current_day: contract.current_day + 1,
+                  problems_solved_today: 0,
+                  expires_at: nextExpiresAt.toISOString()
+                })
+                .eq('id', contract.id)
+                .select()
+                .single();
+                
+              return NextResponse.json({ contract: updatedContract }, { status: 200, headers: corsHeaders });
+            } else {
+              // Completed the entire Blood Pact!
+              await supabase.from('challenge_contracts')
+                .update({ status: 'completed' })
+                .eq('id', contract.id);
+              return NextResponse.json({ contract: null }, { status: 200, headers: corsHeaders });
+            }
+          } else {
+            // Gauntlet completed
+            await supabase.from('challenge_contracts')
+              .update({ status: 'completed' })
+              .eq('id', contract.id);
+            return NextResponse.json({ contract: null }, { status: 200, headers: corsHeaders });
+          }
+        }
+      }
     }
 
     return NextResponse.json({ contract: contract || null }, { status: 200, headers: corsHeaders });
