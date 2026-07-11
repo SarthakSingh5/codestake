@@ -130,8 +130,8 @@ export async function POST(request: Request) {
       // Since users can be in any timezone, we set expiration to 24 hours from now for V1 simplicity.
       expiresAt.setHours(expiresAt.getHours() + 24);
     } else if (mode === 'gauntlet') {
-      // Gauntlet is 3 hours
-      expiresAt.setHours(expiresAt.getHours() + 3);
+      const durationMinutes = body.durationMinutes || 180;
+      expiresAt.setMinutes(expiresAt.getMinutes() + durationMinutes);
     }
 
     // 3. Create the contract

@@ -25,6 +25,10 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
   const [pactProblems, setPactProblems] = useState<number>(1);
   const [pactPenalty, setPactPenalty] = useState<number>(5000);
 
+  // Gauntlet State
+  const [gauntletProblems, setGauntletProblems] = useState<number>(5);
+  const [gauntletMinutes, setGauntletMinutes] = useState<number>(180);
+
   // Global State
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [activeContract, setActiveContract] = useState<ChallengeContract | null>(null);
@@ -89,7 +93,8 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
             userId,
             mode,
             targetDays: mode === 'blood_pact' ? pactDays : 1,
-            targetProblemsPerDay: mode === 'blood_pact' ? pactProblems : 5,
+            targetProblemsPerDay: mode === 'blood_pact' ? pactProblems : gauntletProblems,
+            durationMinutes: mode === 'gauntlet' ? gauntletMinutes : undefined,
             penaltyCents: pactPenalty
           })
         }
@@ -214,20 +219,34 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
             <div className="bg-white/5 rounded-xl p-4 mb-6 text-left space-y-3">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-400">Your Stake:</span>
-                <select value={stakeAmount} onChange={(e) => setStakeAmount(Number(e.target.value))} className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white font-mono outline-none">
-                  <option value={500}>$5.00</option><option value={1000}>$10.00</option><option value={2000}>$20.00</option>
-                </select>
+                <div className="flex gap-4 items-center w-2/3">
+                  <input type="range" min="100" max="10000" step="100" value={stakeAmount} onChange={(e) => setStakeAmount(Number(e.target.value))} className="w-full accent-emerald-500 bg-black/50 rounded-lg appearance-none cursor-pointer h-2" />
+                  <div className="relative flex items-center justify-end w-24">
+                    <span className="absolute left-2 text-emerald-500 text-xs">$</span>
+                    <input type="number" min="1" value={stakeAmount / 100} onChange={(e) => setStakeAmount(Math.max(1, Number(e.target.value)) * 100)} className="bg-black/50 border border-white/10 focus:border-emerald-500/50 rounded pl-5 pr-2 py-1 text-emerald-400 font-mono font-bold outline-none w-full text-right transition" />
+                  </div>
+                </div>
               </div>
               <div className="flex justify-between items-center text-sm pt-2 border-t border-white/5">
                 <span className="text-slate-400">Mode:</span>
-                <select value={stakeMode} onChange={(e) => setStakeMode(e.target.value)} className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs outline-none">
-                  <option value="time_crunch">⏱️ Time Crunch</option><option value="one_shot">🎯 One Shot</option>
-                </select>
+                <div className="flex gap-2 items-center">
+                  <button onClick={() => setStakeMode("time_crunch")} className={`px-2 py-1 rounded text-xs transition ${stakeMode === "time_crunch" ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50' : 'bg-black/50 text-slate-400 border border-white/10 hover:border-white/30'}`}>⏱️ Time Crunch</button>
+                  <button onClick={() => setStakeMode("one_shot")} className={`px-2 py-1 rounded text-xs transition ${stakeMode === "one_shot" ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50' : 'bg-black/50 text-slate-400 border border-white/10 hover:border-white/30'}`}>🎯 One Shot</button>
+                </div>
               </div>
               {stakeMode === "time_crunch" && (
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-400">Timer (mins):</span>
-                  <input type="number" min="1" value={timerDuration} onChange={(e) => setTimerDuration(Number(e.target.value))} className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs w-16 text-right" />
+                  <span className="text-slate-400">Timer:</span>
+                  <div className="flex gap-4 items-center w-2/3">
+                    <input type="range" min="5" max="180" step="5" value={timerDuration} onChange={(e) => setTimerDuration(Number(e.target.value))} className="w-full accent-emerald-500 bg-black/50 rounded-lg appearance-none cursor-pointer h-2" />
+                    <div className="flex flex-col items-end w-24">
+                      <div className="relative w-full">
+                        <input type="number" min="5" step="5" value={timerDuration} onChange={(e) => setTimerDuration(Math.max(1, Number(e.target.value)))} className="bg-black/50 border border-white/10 focus:border-emerald-500/50 rounded pl-2 pr-5 py-1 text-emerald-400 font-mono font-bold outline-none w-full text-right transition" />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-500/70 text-xs">m</span>
+                      </div>
+                      {timerDuration >= 60 && <span className="text-[10px] text-slate-500 mt-1">({Math.floor(timerDuration/60)}h {timerDuration%60 > 0 ? `${timerDuration%60}m` : ''})</span>}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -242,22 +261,35 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
             <p className="text-xs text-slate-400 mb-6">If you miss your quota before midnight, you incur a massive debt penalty.</p>
             <div className="bg-white/5 rounded-xl p-4 mb-6 text-left space-y-4">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400">Contract Length:</span>
-                <select value={pactDays} onChange={(e) => setPactDays(Number(e.target.value))} className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs">
-                  <option value={7}>7 Days</option><option value={30}>30 Days</option><option value={100}>100 Days</option>
-                </select>
+                <span className="text-slate-400">Length:</span>
+                <div className="flex gap-4 items-center w-2/3">
+                  <input type="range" min="1" max="100" step="1" value={pactDays} onChange={(e) => setPactDays(Number(e.target.value))} className="w-full accent-red-500 bg-black/50 rounded-lg appearance-none cursor-pointer h-2" />
+                  <div className="flex flex-col items-end w-24">
+                    <div className="relative w-full">
+                      <input type="number" min="1" value={pactDays} onChange={(e) => setPactDays(Math.max(1, Number(e.target.value)))} className="bg-black/50 border border-white/10 focus:border-red-500/50 rounded pl-2 pr-5 py-1 text-red-400 font-mono font-bold outline-none w-full text-right transition" />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500/70 text-xs">d</span>
+                    </div>
+                    {pactDays >= 30 && <span className="text-[10px] text-slate-500 mt-1">(~{(pactDays/30).toFixed(1)}m)</span>}
+                  </div>
+                </div>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400">Daily Problems:</span>
-                <select value={pactProblems} onChange={(e) => setPactProblems(Number(e.target.value))} className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs">
-                  <option value={1}>1 Problem</option><option value={3}>3 Problems</option><option value={5}>5 Problems</option>
-                </select>
+                <span className="text-slate-400">Daily Quota:</span>
+                <div className="flex items-center gap-3 bg-black/50 rounded-lg border border-white/10 p-1">
+                  <button onClick={() => setPactProblems(Math.max(1, pactProblems - 1))} className="w-6 h-6 rounded bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white flex items-center justify-center transition">-</button>
+                  <span className="text-red-400 font-mono font-bold w-4 text-center">{pactProblems}</span>
+                  <button onClick={() => setPactProblems(Math.min(10, pactProblems + 1))} className="w-6 h-6 rounded bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white flex items-center justify-center transition">+</button>
+                </div>
               </div>
               <div className="flex justify-between items-center text-sm pt-2 border-t border-white/5">
-                <span className="text-red-400 font-bold">Failure Debt Penalty:</span>
-                <select value={pactPenalty} onChange={(e) => setPactPenalty(Number(e.target.value))} className="bg-red-950/50 border border-red-500/30 rounded px-2 py-1 text-red-400 font-mono text-sm">
-                  <option value={5000}>$50.00</option><option value={10000}>$100.00</option><option value={50000}>$500.00</option>
-                </select>
+                <span className="text-red-400 font-bold">Failure Penalty:</span>
+                <div className="flex gap-4 items-center w-2/3">
+                  <input type="range" min="500" max="50000" step="500" value={pactPenalty} onChange={(e) => setPactPenalty(Number(e.target.value))} className="w-full accent-red-500 bg-black/50 rounded-lg appearance-none cursor-pointer h-2" />
+                  <div className="relative flex items-center justify-end w-24">
+                    <span className="absolute left-2 text-red-500 text-xs">$</span>
+                    <input type="number" min="5" value={pactPenalty / 100} onChange={(e) => setPactPenalty(Math.max(1, Number(e.target.value)) * 100)} className="bg-black/50 border border-red-500/30 focus:border-red-500 rounded pl-5 pr-2 py-1 text-red-400 font-mono font-bold outline-none w-full text-right transition" />
+                  </div>
+                </div>
               </div>
             </div>
             <button onClick={() => handleStartContract('blood_pact')} disabled={isCommitting} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg mb-3 shadow-[0_0_15px_rgba(220,38,38,0.4)]">SEAL THE PACT</button>
@@ -271,18 +303,35 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
             <p className="text-xs text-slate-400 mb-6">Complete 5 problems back-to-back in under 3 hours. No pauses.</p>
             <div className="bg-white/5 rounded-xl p-4 mb-6 text-left space-y-4">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400">Target:</span>
-                <span className="text-white">5 Problems</span>
+                <span className="text-slate-400">Target Problems:</span>
+                <div className="flex items-center gap-3 bg-black/50 rounded-lg border border-white/10 p-1">
+                  <button onClick={() => setGauntletProblems(Math.max(1, gauntletProblems - 1))} className="w-6 h-6 rounded bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white flex items-center justify-center transition">-</button>
+                  <span className="text-orange-400 font-mono font-bold w-4 text-center">{gauntletProblems}</span>
+                  <button onClick={() => setGauntletProblems(Math.min(20, gauntletProblems + 1))} className="w-6 h-6 rounded bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white flex items-center justify-center transition">+</button>
+                </div>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-400">Time Limit:</span>
-                <span className="text-white">3 Hours</span>
+                <div className="flex gap-4 items-center w-2/3">
+                  <input type="range" min="30" max="300" step="30" value={gauntletMinutes} onChange={(e) => setGauntletMinutes(Number(e.target.value))} className="w-full accent-orange-500 bg-black/50 rounded-lg appearance-none cursor-pointer h-2" />
+                  <div className="flex flex-col items-end w-24">
+                    <div className="relative w-full">
+                      <input type="number" min="30" step="30" value={gauntletMinutes} onChange={(e) => setGauntletMinutes(Math.max(1, Number(e.target.value)))} className="bg-black/50 border border-white/10 focus:border-orange-500/50 rounded pl-2 pr-5 py-1 text-orange-400 font-mono font-bold outline-none w-full text-right transition" />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-orange-500/70 text-xs">m</span>
+                    </div>
+                    {gauntletMinutes >= 60 && <span className="text-[10px] text-slate-500 mt-1">({Math.floor(gauntletMinutes/60)}h {gauntletMinutes%60 > 0 ? `${gauntletMinutes%60}m` : ''})</span>}
+                  </div>
+                </div>
               </div>
               <div className="flex justify-between items-center text-sm pt-2 border-t border-white/5">
-                <span className="text-orange-400 font-bold">Failure Debt Penalty:</span>
-                <select value={pactPenalty} onChange={(e) => setPactPenalty(Number(e.target.value))} className="bg-orange-950/50 border border-orange-500/30 rounded px-2 py-1 text-orange-400 font-mono text-sm">
-                  <option value={2000}>$20.00</option><option value={5000}>$50.00</option>
-                </select>
+                <span className="text-orange-400 font-bold">Failure Penalty:</span>
+                <div className="flex gap-4 items-center w-2/3">
+                  <input type="range" min="500" max="50000" step="500" value={pactPenalty} onChange={(e) => setPactPenalty(Number(e.target.value))} className="w-full accent-orange-500 bg-black/50 rounded-lg appearance-none cursor-pointer h-2" />
+                  <div className="relative flex items-center justify-end w-24">
+                    <span className="absolute left-2 text-orange-500 text-xs">$</span>
+                    <input type="number" min="5" value={pactPenalty / 100} onChange={(e) => setPactPenalty(Math.max(1, Number(e.target.value)) * 100)} className="bg-black/50 border border-orange-500/30 focus:border-orange-500 rounded pl-5 pr-2 py-1 text-orange-400 font-mono font-bold outline-none w-full text-right transition" />
+                  </div>
+                </div>
               </div>
             </div>
             <button onClick={() => handleStartContract('gauntlet')} disabled={isCommitting} className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-lg mb-3 shadow-[0_0_15px_rgba(249,115,22,0.4)]">ENTER THE GAUNTLET</button>
