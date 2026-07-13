@@ -8,6 +8,7 @@ import { Unauthenticated } from './components/Unauthenticated';
 import { NotificationBubble } from './components/NotificationBubble';
 import { ActiveTracker } from './components/ActiveTracker';
 import { BettingModal } from './components/BettingModal';
+import { getDialogue } from './lib/PersonalityDialogues';
 
 function CodeStakeOverlay() {
   const [uiState, setUiState] = useState<UIState>('HIDDEN');
@@ -15,7 +16,7 @@ function CodeStakeOverlay() {
   const [activeSessionMode, setActiveSessionMode] = useState<string>("time_crunch");
   const [timerEndMs, setTimerEndMs] = useState<number | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [popupMsg, setPopupMsg] = useState<{type: 'win' | 'fail', text: string} | null>(null);
+  const [popupMsg, setPopupMsg] = useState<{type: 'win' | 'fail', text: string, score: number} | null>(null);
 
   // Initialize Auth
   useEffect(() => {
@@ -135,16 +136,16 @@ function CodeStakeOverlay() {
 
             const data = response.data;
             if (data.success) {
-              if (data.resolvedAs === "won") {
-                window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'win', text: "VICTORY: Stake Refunded." } }));
+              if (data.resolvedAs === "won" || data.resolvedAs === "contract_progress") {
+                window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'win', text: "VICTORY: Stake Refunded.", score: data.personaScore } }));
                 setActiveSessionId(null);
                 setUiState('MINIMIZED');
               } else if (data.resolvedAs === "lost_one_shot") {
-                window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'fail', text: "Wrong Answer. Stake Lost." } }));
+                window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'fail', text: "Wrong Answer. Stake Lost.", score: data.personaScore } }));
                 setActiveSessionId(null);
                 setUiState('MINIMIZED');
               } else if (data.resolvedAs === "lost_expired") {
-                window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'fail', text: "Timer Expired. Stake Lost." } }));
+                window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'fail', text: "Timer Expired. Stake Lost.", score: data.personaScore } }));
                 setActiveSessionId(null);
                 setUiState('MINIMIZED');
               }
@@ -190,25 +191,39 @@ function CodeStakeOverlay() {
         />
       )}
 
-      {popupMsg && (
-        <div className="fixed bottom-6 right-6 z-[999999] animate-in slide-in-from-bottom-5 fade-in duration-300">
-          <div className={`p-4 rounded shadow-2xl border font-sans w-80 text-left relative overflow-hidden ${
-            popupMsg.type === 'win' 
-              ? 'bg-[#0f1a14] border-green-500/50 shadow-green-900/20 text-green-400' 
-              : 'bg-[#1a0f0f] border-red-500/50 shadow-red-900/20 text-red-400'
-          }`}>
-            <h3 className="font-bold text-lg mb-1 uppercase tracking-wider">
-              {popupMsg.type === 'win' ? 'VICTORY' : 'DEFEAT'}
+      {popupMsg && popupMsg.type === 'win' && (
+        <div className="fixed inset-0 z-[999999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
+          <div className="bg-[#0f1a14] border border-green-500/50 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-green-900/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-600 to-emerald-400" />
+            <button 
+              onClick={() => setPopupMsg(null)} 
+              className="absolute top-4 right-4 text-slate-500 hover:text-green-500 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h3 className="font-bold text-2xl text-green-400 mb-2 uppercase tracking-wider">
+              VICTORY
             </h3>
-            <p className="text-sm opacity-90 mb-4">{popupMsg.text}</p>
+            <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+              "{getDialogue(popupMsg.score || 0, 'win')}"
+            </p>
             <button 
               onClick={() => setPopupMsg(null)}
-              className={`w-full py-2 rounded text-sm font-bold uppercase tracking-widest transition-colors ${
-                popupMsg.type === 'win'
-                  ? 'bg-green-600 hover:bg-green-500 text-white'
-                  : 'bg-red-600 hover:bg-red-500 text-white'
-              }`}
+              className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(34,197,94,0.4)] mb-3 uppercase tracking-wider"
             >
+              CLOSE
+            </button>
+          </div>
+        </div>
+      )}
+      {popupMsg && popupMsg.type === 'fail' && (
+        <div className="fixed bottom-6 right-6 z-[999999] animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="bg-[#1a0f0f] border border-red-500/50 shadow-red-900/20 text-red-400 p-4 rounded shadow-2xl font-sans w-80 text-left relative overflow-hidden">
+            <h3 className="font-bold text-lg mb-1 uppercase tracking-wider">DEFEAT</h3>
+            <p className="text-sm opacity-90 mb-4">{popupMsg.text}</p>
+            <button onClick={() => setPopupMsg(null)} className="w-full py-2 rounded text-sm font-bold uppercase tracking-widest bg-red-600 hover:bg-red-500 text-white transition-colors">
               Dismiss
             </button>
           </div>

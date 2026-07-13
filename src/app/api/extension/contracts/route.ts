@@ -54,6 +54,12 @@ export async function GET(request: Request) {
             .update({ status: 'failed' })
             .eq('id', contract.id);
             
+          // Decrement Persona Score by 10 on failure
+          const { data: walletData } = await supabase.from('wallets').select('persona_score').eq('user_id', userId).single();
+          if (walletData) {
+            await supabase.from('wallets').update({ persona_score: (walletData.persona_score || 0) - 10 }).eq('user_id', userId);
+          }
+            
           return NextResponse.json({ contract: null }, { status: 200, headers: corsHeaders });
         } else {
           // SUCCESS: Met the quota for the day/gauntlet

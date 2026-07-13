@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { UIState, ChallengeContract } from '../types';
+import { getDialogue } from '../lib/PersonalityDialogues';
 
 interface Props {
   userId: string;
@@ -31,6 +32,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
   // Global State
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [personaScore, setPersonaScore] = useState<number>(0);
   const [activeContract, setActiveContract] = useState<ChallengeContract | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
 
@@ -52,6 +54,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
             (walletRes) => {
               if (walletRes?.data?.balanceCents !== undefined) {
                 setWalletBalance(walletRes.data.balanceCents);
+                setPersonaScore(walletRes.data.personaScore || 0);
               }
             }
           );
@@ -67,12 +70,22 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
       <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
         <div className="bg-[#0b0f1e] border border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-red-900/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-orange-500" />
-          <h2 className="text-2xl font-bold text-red-500 mb-2 uppercase tracking-wider">You lose</h2>
-          <p className="text-slate-400 text-sm mb-6 uppercase tracking-widest">now please honor the code of omerta</p>
-          <button onClick={() => window.open("http://localhost:3000/wallet", "_blank")} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3 uppercase tracking-wider">
-            be a man of word
+          <button 
+            onClick={() => setUiState('MINIMIZED')} 
+            className="absolute top-4 right-4 text-slate-500 hover:text-red-500 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
-          <button onClick={() => setUiState('HIDDEN')} className="text-slate-500 hover:text-red-500 text-xs font-bold uppercase tracking-widest underline transition-colors">
+          <h2 className="text-2xl font-bold text-red-500 mb-2 uppercase tracking-wider">THE PACT IS BROKEN</h2>
+          <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+            "{getDialogue(personaScore, 'loss')}"
+          </p>
+          <button onClick={() => window.open("http://localhost:3000/wallet", "_blank")} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3 uppercase tracking-wider">
+            RESTORE HONOR (${(Math.abs(walletBalance) / 100).toFixed(2)})
+          </button>
+          <button onClick={() => setUiState('MINIMIZED')} className="text-slate-500 hover:text-red-500 text-xs font-bold uppercase tracking-widest underline transition-colors">
             i quit and will never come here again
           </button>
         </div>
@@ -158,6 +171,14 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
     <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
       <div className="bg-[#0b0f1e] border border-emerald-500/30 rounded-2xl p-6 max-w-md w-full shadow-2xl shadow-emerald-900/20 relative overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-400" />
+        <button 
+          onClick={() => setUiState('MINIMIZED')} 
+          className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors z-50"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
         
         {view === 'main' && (
           <div className="text-center">

@@ -30,15 +30,15 @@ export async function GET(request: Request) {
     // For now, this is a read-only endpoint so it's safe enough for development.
     const { data: wallet, error } = await supabase
       .from("wallets")
-      .select("balance_cents")
+      .select("balance_cents, persona_score")
       .eq("user_id", userId)
       .single();
 
     if (error || !wallet) {
-      return NextResponse.json({ balanceCents: 0 }, { status: 200, headers: corsHeaders });
+      return NextResponse.json({ balanceCents: 0, personaScore: 0 }, { status: 200, headers: corsHeaders });
     }
 
-    return NextResponse.json({ balanceCents: wallet.balance_cents }, { status: 200, headers: corsHeaders });
+    return NextResponse.json({ balanceCents: wallet.balance_cents, personaScore: wallet.persona_score || 0 }, { status: 200, headers: corsHeaders });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500, headers: corsHeaders });
   }

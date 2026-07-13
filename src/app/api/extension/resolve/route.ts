@@ -41,16 +41,22 @@ export async function POST(request: Request) {
 
       if (verdict === "EXPIRED" || (session.expires_at && new Date(session.expires_at) < new Date())) {
          await failStakeSession(session.id);
-         return NextResponse.json({ success: true, resolvedAs: "lost_expired" }, { headers: corsHeaders });
+         const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
+         if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
+         return NextResponse.json({ success: true, resolvedAs: "lost_expired", personaScore: (w?.persona_score || 0) - 10 }, { headers: corsHeaders });
       }
 
       if (verdict === "Accepted") {
         await internalResolveStakeWin(session.id);
-        return NextResponse.json({ success: true, resolvedAs: "won" }, { headers: corsHeaders });
+        const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
+        if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) + 5 }).eq('user_id', userId);
+        return NextResponse.json({ success: true, resolvedAs: "won", personaScore: (w?.persona_score || 0) + 5 }, { headers: corsHeaders });
       } else {
         if (session.mode === "one_shot") {
           await failStakeSession(session.id);
-          return NextResponse.json({ success: true, resolvedAs: "lost_one_shot" }, { headers: corsHeaders });
+          const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
+          if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
+          return NextResponse.json({ success: true, resolvedAs: "lost_one_shot", personaScore: (w?.persona_score || 0) - 10 }, { headers: corsHeaders });
         } else {
           return NextResponse.json({ success: true, resolvedAs: "continue" }, { headers: corsHeaders });
         }
@@ -71,7 +77,9 @@ export async function POST(request: Request) {
             // Timezone/Late Exploit Blocked: Timer expired before this submission.
             await adminClient.rpc('incur_debt', { p_user_id: userId, p_amount: contract.penalty_cents });
             await adminClient.from("challenge_contracts").update({ status: 'failed' }).eq("id", contract.id);
-            return NextResponse.json({ success: true, resolvedAs: "lost_expired" }, { headers: corsHeaders });
+            const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
+            if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
+            return NextResponse.json({ success: true, resolvedAs: "lost_expired", personaScore: (w?.persona_score || 0) - 10 }, { headers: corsHeaders });
           }
 
           // Increment problems solved today
@@ -84,7 +92,10 @@ export async function POST(request: Request) {
             })
             .eq("id", contract.id);
 
-          return NextResponse.json({ success: true, resolvedAs: "contract_progress" }, { headers: corsHeaders });
+          const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
+          if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) + 5 }).eq('user_id', userId);
+
+          return NextResponse.json({ success: true, resolvedAs: "contract_progress", personaScore: (w?.persona_score || 0) + 5 }, { headers: corsHeaders });
         }
       }
       return NextResponse.json({ success: true, resolvedAs: "continue" }, { headers: corsHeaders });
