@@ -16,7 +16,7 @@ function CodeStakeOverlay() {
   const [activeSessionMode, setActiveSessionMode] = useState<string>("time_crunch");
   const [timerEndMs, setTimerEndMs] = useState<number | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [popupMsg, setPopupMsg] = useState<{type: 'win' | 'fail', text: string, score: number} | null>(null);
+  const [popupMsg, setPopupMsg] = useState<{ type: 'win' | 'fail', text: string, score: number } | null>(null);
 
   // Initialize Auth
   useEffect(() => {
@@ -57,7 +57,7 @@ function CodeStakeOverlay() {
       { action: 'fetch_api', url: `http://localhost:3000/api/extension/session?userId=${userId}&problemSlug=${problemSlug}` },
       (response) => {
         let hasActiveChallenge = false;
-        
+
         if (response?.data?.activeSession) {
           hasActiveChallenge = true;
           const session = response.data.activeSession;
@@ -113,7 +113,7 @@ function CodeStakeOverlay() {
       setPopupMsg(e.detail);
     };
     window.addEventListener('CODESTAKE_POPUP', handlePopup);
-    
+
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'CODESTAKE_SUBMISSION_RESULT') {
         if (!activeSessionId) return;
@@ -171,15 +171,15 @@ function CodeStakeOverlay() {
   return (
     <>
       {uiState === 'UNAUTHENTICATED' && <Unauthenticated setUiState={setUiState} />}
-      
+
       {(uiState === 'NOTIFICATION' || uiState === 'MINIMIZED') && (
         <NotificationBubble uiState={uiState} setUiState={setUiState} />
       )}
-      
+
       {uiState === 'TRACKING' && (
         <ActiveTracker activeSessionMode={activeSessionMode} timerString={timerString} setUiState={setUiState} />
       )}
-      
+
       {uiState === 'MODAL' && userId && (
         <BettingModal
           userId={userId}
@@ -195,8 +195,8 @@ function CodeStakeOverlay() {
         <div className="fixed inset-0 z-[999999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
           <div className="bg-[#0f1a14] border border-green-500/50 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-green-900/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-600 to-emerald-400" />
-            <button 
-              onClick={() => setPopupMsg(null)} 
+            <button
+              onClick={() => setPopupMsg(null)}
               className="absolute top-4 right-4 text-slate-500 hover:text-green-500 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -209,7 +209,7 @@ function CodeStakeOverlay() {
             <p className="text-slate-300 text-sm mb-6 leading-relaxed">
               "{getDialogue(popupMsg.score || 0, 'win')}"
             </p>
-            <button 
+            <button
               onClick={() => setPopupMsg(null)}
               className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(34,197,94,0.4)] mb-3 uppercase tracking-wider"
             >
@@ -245,4 +245,5 @@ script.onload = () => {
 const root = document.createElement('div');
 root.id = 'codestake-extension-root';
 document.body.appendChild(root);
+createRoot(root).render(<CodeStakeOverlay />);
 createRoot(root).render(<CodeStakeOverlay />);

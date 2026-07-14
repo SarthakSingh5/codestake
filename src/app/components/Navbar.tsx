@@ -63,15 +63,23 @@ export default async function Navbar({ hideHardcoreToggle = false }: { hideHardc
                   Extension
                 </Link>
                 {user && (
-                  <Link
-                    href="/wallet"
-                    className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition"
-                  >
+                  <>
+                    <Link
+                      href="/profile"
+                      className="rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition"
+                    >
+                      Profile
+                    </Link>
+                    <Link
+                      href="/wallet"
+                      className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition"
+                    >
                     Wallet
                     <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
                       {formatCurrency(walletBalance)}
                     </span>
-                  </Link>
+                    </Link>
+                  </>
                 )}
               </div>
             </div>

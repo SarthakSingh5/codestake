@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import Navbar from "./components/Navbar";
@@ -11,70 +12,9 @@ export default async function Home() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // If logged in, show the User Dashboard view
+  // If logged in, redirect directly to the Arena (problems)
   if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    return (
-      <div className="min-h-screen bg-[#02050b] text-slate-100 flex flex-col">
-        <Navbar />
-        <main className="flex-1 relative">
-          <div
-            className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full blur-3xl opacity-20"
-            style={{ background: "radial-gradient(circle, #6366f1 0%, transparent 70%)" }}
-            aria-hidden="true"
-          />
-
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 relative">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold tracking-tight text-white">Dashboard</h1>
-              <p className="mt-2 text-sm text-slate-400">Welcome back, {user.email}</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="rounded-2xl border border-white/10 bg-[#0b0f1e]/80 p-6 backdrop-blur">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm font-medium text-slate-400">Role</span>
-                  <span className="text-xl">👤</span>
-                </div>
-                <div className="inline-block rounded-full bg-slate-800 px-3 py-1 text-xs font-medium text-slate-300">
-                  <span className="text-white font-bold uppercase">{profile?.role || "user"}</span>
-                </div>
-              </div>
-              
-              <div className="rounded-2xl border border-white/10 bg-[#0b0f1e]/80 p-6 backdrop-blur">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm font-medium text-slate-400">Your Rank</span>
-                  <span className="text-xl">🏆</span>
-                </div>
-                <span className="text-3xl font-bold text-white">#42</span>
-              </div>
-              
-              <div className="rounded-2xl border border-white/10 bg-[#0b0f1e]/80 p-6 backdrop-blur">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm font-medium text-slate-400">Total Points</span>
-                  <span className="text-xl">⭐</span>
-                </div>
-                <span className="text-3xl font-bold text-white">1,337</span>
-              </div>
-            </div>
-            
-            <div className="rounded-2xl border border-white/10 bg-[#0b0f1e]/80 p-6 backdrop-blur min-h-[300px] flex flex-col items-center justify-center">
-               <div className="text-center">
-                 <p className="text-slate-400 mb-4">Ready to solve some problems?</p>
-                 <Link href="/problems" className="inline-flex items-center justify-center rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:bg-indigo-500 active:scale-[0.98]">
-                    View Problem List
-                 </Link>
-               </div>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
+    redirect("/problems");
   }
 
   // If logged out, show the Landing Page

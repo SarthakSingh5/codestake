@@ -15,12 +15,12 @@ type DashboardView = 'main' | 'quick_play' | 'blood_pact' | 'gauntlet';
 
 export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, setActiveSessionMode, setTimerEndMs }: Props) {
   const [view, setView] = useState<DashboardView>('main');
-  
+
   // Quick Play State
   const [stakeAmount, setStakeAmount] = useState<number>(500);
   const [stakeMode, setStakeMode] = useState<string>("time_crunch");
   const [timerDuration, setTimerDuration] = useState<number>(30);
-  
+
   // Blood Pact State
   const [pactDays, setPactDays] = useState<number>(7);
   const [pactProblems, setPactProblems] = useState<number>(1);
@@ -47,7 +47,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
           } else {
             setActiveContract(null);
           }
-          
+
           // Now fetch Wallet (guarantees sweep debt is reflected)
           chrome.runtime.sendMessage(
             { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}` },
@@ -70,8 +70,8 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
       <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
         <div className="bg-[#0b0f1e] border border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-red-900/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-orange-500" />
-          <button 
-            onClick={() => setUiState('MINIMIZED')} 
+          <button
+            onClick={() => setUiState('MINIMIZED')}
             className="absolute top-4 right-4 text-slate-500 hover:text-red-500 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -130,7 +130,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
       alert("You must be on a specific LeetCode problem page to start a Quick Play.");
       return;
     }
-    
+
     setIsCommitting(true);
     const problemSlug = window.location.pathname.split("/")[2] || "unknown-problem";
     chrome.runtime.sendMessage(
@@ -171,19 +171,19 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
     <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
       <div className="bg-[#0b0f1e] border border-emerald-500/30 rounded-2xl p-6 max-w-md w-full shadow-2xl shadow-emerald-900/20 relative overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-400" />
-        <button 
-          onClick={() => setUiState('MINIMIZED')} 
+        <button
+          onClick={() => setUiState('MINIMIZED')}
           className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors z-50"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        
+
         {view === 'main' && (
           <div className="text-center">
             <h2 className="text-2xl font-bold text-white mb-6 tracking-wide">COMMAND DASHBOARD</h2>
-            
+
             {activeContract && (
               <div className="mb-6 p-4 rounded-xl border border-red-500/30 bg-red-950/20 text-left">
                 <div className="flex justify-between items-center mb-2">
@@ -192,7 +192,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                 </div>
                 <h4 className="text-white text-lg mb-1">{activeContract.mode === 'blood_pact' ? 'The Blood Pact' : 'The Gauntlet'}</h4>
                 <div className="text-slate-400 text-sm mb-4">
-                  {activeContract.mode === 'blood_pact' 
+                  {activeContract.mode === 'blood_pact'
                     ? `Day ${activeContract.current_day} of ${activeContract.target_days}. Solved today: ${activeContract.problems_solved_today}/${activeContract.target_problems_per_day}`
                     : `Gauntlet: Solved ${activeContract.total_problems_solved}/${activeContract.target_problems_per_day}`
                   }
@@ -204,11 +204,11 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
             )}
 
             <div className="grid grid-cols-1 gap-3">
-              <button 
+              <button
                 onClick={() => {
                   const isProblemPage = window.location.pathname.includes("/problems/") && window.location.pathname.split("/")[2];
                   if (isProblemPage) setView('quick_play');
-                }} 
+                }}
                 className={`p-4 rounded-xl transition text-left group ${(window.location.pathname.includes("/problems/") && window.location.pathname.split("/")[2]) ? "bg-emerald-950/30 border border-emerald-500/20 hover:border-emerald-500/60 hover:bg-emerald-900/40 text-white cursor-pointer" : "bg-slate-900/50 border border-slate-700/50 text-slate-500 cursor-not-allowed opacity-50"}`}
               >
                 <div className={`font-bold mb-1 ${(window.location.pathname.includes("/problems/") && window.location.pathname.split("/")[2]) ? "text-emerald-400 group-hover:text-emerald-300" : "text-slate-500"}`}>
@@ -216,7 +216,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                 </div>
                 <div className="text-xs text-slate-400">Micro-stake on a single problem. Fast and brutal.</div>
               </button>
-              
+
               {!activeContract && (
                 <>
                   <button onClick={() => setView('blood_pact')} className="bg-white/5 border border-white/10 hover:border-red-500/50 hover:bg-red-950/20 text-white p-4 rounded-xl transition text-left group">
@@ -265,7 +265,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                         <input type="number" min="5" step="5" value={timerDuration} onChange={(e) => setTimerDuration(Math.max(1, Number(e.target.value)))} className="bg-black/50 border border-white/10 focus:border-emerald-500/50 rounded pl-2 pr-5 py-1 text-emerald-400 font-mono font-bold outline-none w-full text-right transition" />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-500/70 text-xs">m</span>
                       </div>
-                      {timerDuration >= 60 && <span className="text-[10px] text-slate-500 mt-1">({Math.floor(timerDuration/60)}h {timerDuration%60 > 0 ? `${timerDuration%60}m` : ''})</span>}
+                      {timerDuration >= 60 && <span className="text-[10px] text-slate-500 mt-1">({Math.floor(timerDuration / 60)}h {timerDuration % 60 > 0 ? `${timerDuration % 60}m` : ''})</span>}
                     </div>
                   </div>
                 </div>
@@ -290,7 +290,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                       <input type="number" min="1" value={pactDays} onChange={(e) => setPactDays(Math.max(1, Number(e.target.value)))} className="bg-black/50 border border-white/10 focus:border-red-500/50 rounded pl-2 pr-5 py-1 text-red-400 font-mono font-bold outline-none w-full text-right transition" />
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500/70 text-xs">d</span>
                     </div>
-                    {pactDays >= 30 && <span className="text-[10px] text-slate-500 mt-1">(~{(pactDays/30).toFixed(1)}m)</span>}
+                    {pactDays >= 30 && <span className="text-[10px] text-slate-500 mt-1">(~{(pactDays / 30).toFixed(1)}m)</span>}
                   </div>
                 </div>
               </div>
@@ -340,7 +340,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                       <input type="number" min="30" step="30" value={gauntletMinutes} onChange={(e) => setGauntletMinutes(Math.max(1, Number(e.target.value)))} className="bg-black/50 border border-white/10 focus:border-orange-500/50 rounded pl-2 pr-5 py-1 text-orange-400 font-mono font-bold outline-none w-full text-right transition" />
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 text-orange-500/70 text-xs">m</span>
                     </div>
-                    {gauntletMinutes >= 60 && <span className="text-[10px] text-slate-500 mt-1">({Math.floor(gauntletMinutes/60)}h {gauntletMinutes%60 > 0 ? `${gauntletMinutes%60}m` : ''})</span>}
+                    {gauntletMinutes >= 60 && <span className="text-[10px] text-slate-500 mt-1">({Math.floor(gauntletMinutes / 60)}h {gauntletMinutes % 60 > 0 ? `${gauntletMinutes % 60}m` : ''})</span>}
                   </div>
                 </div>
               </div>
