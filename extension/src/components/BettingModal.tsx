@@ -6,15 +6,16 @@ interface Props {
   userId: string;
   uiState: UIState;
   setUiState: (state: UIState) => void;
-  setActiveSessionId: (id: string) => void;
+  setActiveSessionId: (id: string | null) => void;
   setActiveSessionMode: (mode: string) => void;
-  setTimerEndMs: (ms: number) => void;
+  setTimerEndMs: (ms: number | null) => void;
 }
 
-type DashboardView = 'main' | 'quick_play' | 'blood_pact' | 'gauntlet';
+type DashboardView = 'active_sessions' | 'main' | 'quick_play' | 'blood_pact' | 'gauntlet';
 
 export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, setActiveSessionMode, setTimerEndMs }: Props) {
   const [view, setView] = useState<DashboardView>('main');
+  const [activeSessions, setActiveSessions] = useState<any[]>([]);
 
   // Quick Play State
   const [stakeAmount, setStakeAmount] = useState<number>(500);
@@ -179,6 +180,74 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
+
+        {/* Top Tab Bar Navigation */}
+        {(view === 'main' || view === 'active_sessions') && (
+          <div className="flex bg-white/5 p-1 rounded-lg mb-6">
+            <button
+              onClick={() => setView('main')}
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded transition ${view === 'main' ? 'bg-[#0b0f1e] text-white shadow shadow-emerald-500/10' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              Forge Pact
+            </button>
+            <button
+              onClick={() => {
+                setView('active_sessions');
+                chrome.runtime.sendMessage(
+                  { action: 'fetch_api', url: `http://localhost:3000/api/extension/sessions?userId=${userId}&t=${Date.now()}` },
+                  (res) => {
+                    if (res?.data?.sessions) setActiveSessions(res.data.sessions);
+                  }
+                );
+              }}
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded transition ${view === 'active_sessions' ? 'bg-[#0b0f1e] text-indigo-400 shadow shadow-indigo-500/10' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              Active Pacts
+            </button>
+          </div>
+        )}
+
+        {view === 'active_sessions' && (
+          <div>
+
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              {activeSessions.length === 0 ? (
+                <div className="text-center p-6 border border-white/5 rounded-xl bg-white/[0.02]">
+                  <p className="text-slate-500 italic">You have no active pacts.</p>
+                </div>
+              ) : (
+                activeSessions.filter(s => s.problems !== null).map(session => {
+                  const url = session.problems.platform === "leetcode"
+                    ? `https://leetcode.com/problems/${session.problems.slug}`
+                    : "#";
+                    
+                  return (
+                    <a
+                      key={session.id}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-indigo-500/50 transition-all group"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-white font-bold text-sm group-hover:text-indigo-400 transition-colors truncate pr-4">
+                          {session.problems.title}
+                        </h3>
+                        <span className="text-xs font-mono text-emerald-400 font-bold whitespace-nowrap">
+                          ${(session.amount_cents / 100).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs text-slate-500 uppercase font-semibold">
+                        <span>{session.problems.platform}</span>
+                        <span>{session.mode === 'one_shot' ? '🎯 One Shot' : '⏱️ Time Crunch'}</span>
+                      </div>
+                    </a>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
 
         {view === 'main' && (
           <div className="text-center">

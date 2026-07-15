@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
 import { getTierMetadata } from "@/lib/persona";
 import Navbar from "../components/Navbar";
+import ActiveSessionsList from "./components/ActiveSessionsList";
 
 export default async function ProfilePage() {
   const supabase = await createSupabaseServerClient();
@@ -19,6 +21,22 @@ export default async function ProfilePage() {
 
   const score = wallet?.persona_score || 0;
   const metadata = getTierMetadata(score);
+
+  // Fetch Active Sessions using adminClient to bypass RLS on problems table
+  const adminClient = createSupabaseAdminClient();
+  const { data: activeSessions } = await adminClient
+    .from("stake_sessions")
+    .select(`
+      *,
+      problems (
+        title,
+        slug,
+        platform
+      )
+    `)
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
 
   // We map the tier to different visual treatments for the 'Orb'
   // Tier 1 & 2: Glitchy, shattered, fast pulse
@@ -80,6 +98,12 @@ export default async function ProfilePage() {
         </div>
 
       </div>
+
+      {/* Active Sessions Tracker */}
+      <div className="w-full relative z-10 bg-gradient-to-b from-transparent to-[#02050b] pt-12 pb-24">
+        <ActiveSessionsList sessions={activeSessions || []} />
+      </div>
+
     </div>
   );
 }
