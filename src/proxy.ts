@@ -16,6 +16,26 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // 1.5 CodeStake: The Permanent Ban Check
+  if (user) {
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("is_banned")
+      .eq("user_id", user.id)
+      .single();
+
+    const isBanned = wallet?.is_banned === true;
+    const isBannedRoute = pathname.startsWith('/banned');
+
+    if (isBanned && !isBannedRoute) {
+      return NextResponse.redirect(new URL('/banned', request.url));
+    }
+    
+    if (!isBanned && isBannedRoute) {
+      return NextResponse.redirect(new URL('/problems', request.url));
+    }
+  }
+
   // ── Auth routes: /login, /signup ──────────────────────────────────────────
   // If the user is already logged in, redirect them away from auth pages
   if (AUTH_ROUTES.includes(pathname) && user) {

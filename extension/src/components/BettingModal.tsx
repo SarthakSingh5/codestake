@@ -34,6 +34,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
   // Global State
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [personaScore, setPersonaScore] = useState<number>(0);
+  const [isBanned, setIsBanned] = useState<boolean>(false);
   const [activeContract, setActiveContract] = useState<ChallengeContract | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
 
@@ -56,6 +57,9 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
               if (walletRes?.data?.balanceCents !== undefined) {
                 setWalletBalance(walletRes.data.balanceCents);
                 setPersonaScore(walletRes.data.personaScore || 0);
+                if (walletRes.data.isBanned) {
+                  setIsBanned(true);
+                }
               }
             }
           );
@@ -65,6 +69,57 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
   }, [uiState, userId]);
 
   if (uiState !== 'MODAL') return null;
+
+  if (isBanned) {
+    return (
+      <div className="fixed inset-0 z-[99999] bg-black backdrop-blur-md flex items-center justify-center font-sans">
+        <div className="bg-[#050505] border border-red-900/50 rounded-2xl p-12 max-w-md w-full shadow-[0_0_100px_rgba(153,27,27,0.3)] text-center relative overflow-hidden animate-in zoom-in-95 duration-1000">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-full bg-red-900/30" />
+          <div className="absolute top-1/2 left-0 -translate-y-1/2 w-full h-[1px] bg-red-900/30" />
+          
+          <button
+            onClick={() => setUiState('MINIMIZED')}
+            className="absolute top-4 right-4 text-red-900/50 hover:text-red-500 transition-colors z-50"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <h2 className="relative z-10 text-4xl font-black text-red-800 mb-6 uppercase tracking-[0.3em] drop-shadow-[0_0_15px_rgba(220,38,38,0.3)]">
+            EXILED
+          </h2>
+          <p className="relative z-10 text-slate-500 font-serif italic text-lg leading-relaxed mb-8">
+            "You chose the coward's way out.<br />
+            Your pact is broken.<br />
+            You are permanently banished."
+          </p>
+          <div className="relative z-10 text-[10px] text-red-900/70 font-mono tracking-widest uppercase">
+            NO RETURN.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const handlePermanentBan = () => {
+    if (confirm("WARNING: This is permanent. You will be banned from CodeStake forever and locked out of your account. Do you accept the consequences?")) {
+      chrome.runtime.sendMessage(
+        { 
+          action: 'fetch_api', 
+          url: `http://localhost:3000/api/extension/ban`, 
+          options: {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+          }
+        },
+        () => {
+          setIsBanned(true);
+        }
+      );
+    }
+  };
 
   if (walletBalance !== null && walletBalance < 0) {
     return (
@@ -86,7 +141,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
           <button onClick={() => window.open("http://localhost:3000/wallet", "_blank")} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3 uppercase tracking-wider">
             RESTORE HONOR (${(Math.abs(walletBalance) / 100).toFixed(2)})
           </button>
-          <button onClick={() => setUiState('MINIMIZED')} className="text-slate-500 hover:text-red-500 text-xs font-bold uppercase tracking-widest underline transition-colors">
+          <button onClick={handlePermanentBan} className="text-slate-500 hover:text-red-500 text-xs font-bold uppercase tracking-widest underline transition-colors">
             i quit and will never come here again
           </button>
         </div>
