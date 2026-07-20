@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
-import { internalResolveStakeWin } from "@/lib/internalStake";
-import { failStakeSession } from "@/app/actions/stake";
+import { internalResolveStakeWin, internalFailStakeSession } from "@/lib/internalStake";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
       }
 
       if (verdict === "EXPIRED" || (session.expires_at && new Date(session.expires_at) < new Date())) {
-         await failStakeSession(session.id);
+         await internalFailStakeSession(session.id);
          const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
          if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
          return NextResponse.json({ success: true, resolvedAs: "lost_expired", personaScore: (w?.persona_score || 0) - 10 }, { headers: corsHeaders });
@@ -53,7 +52,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true, resolvedAs: "won", personaScore: (w?.persona_score || 0) + 5 }, { headers: corsHeaders });
       } else {
         if (session.mode === "one_shot") {
-          await failStakeSession(session.id);
+          await internalFailStakeSession(session.id);
           const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
           if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
           return NextResponse.json({ success: true, resolvedAs: "lost_one_shot", personaScore: (w?.persona_score || 0) - 10 }, { headers: corsHeaders });

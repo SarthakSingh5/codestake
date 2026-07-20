@@ -37,6 +37,10 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
   const [isBanned, setIsBanned] = useState<boolean>(false);
   const [activeContract, setActiveContract] = useState<ChallengeContract | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
+  
+  // Checkout State
+  const [checkoutMode, setCheckoutMode] = useState<'none' | 'payment_options' | 'stripe'>('none');
+  const [isStripeLoading, setIsStripeLoading] = useState(false);
 
   useEffect(() => {
     if (uiState === 'MODAL' && userId) {
@@ -68,6 +72,43 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
     }
   }, [uiState, userId]);
 
+  // Payment Polling & Iframe Message Listener
+  useEffect(() => {
+    let interval: any;
+    if (walletBalance !== null && walletBalance < 0) {
+      interval = setInterval(() => {
+        chrome.runtime.sendMessage(
+          { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}&t=${Date.now()}` },
+          (walletRes) => {
+            if (walletRes?.data?.balanceCents !== undefined) {
+              setWalletBalance(walletRes.data.balanceCents);
+              // If balance >= 0, the debt view will automatically unmount!
+            }
+          }
+        );
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [walletBalance, checkoutMode, userId]);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // In dev, origin is localhost. In prod, it should be the site URL.
+      if (event.data?.type === 'CODESTAKE_PAYMENT_SUCCESS') {
+        chrome.runtime.sendMessage(
+          { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}&t=${Date.now()}` },
+          (walletRes) => {
+            if (walletRes?.data?.balanceCents !== undefined) {
+              setWalletBalance(walletRes.data.balanceCents);
+            }
+          }
+        );
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [userId]);
+
   if (uiState !== 'MODAL') return null;
 
   if (isBanned) {
@@ -76,7 +117,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
         <div className="bg-[#050505] border border-red-900/50 rounded-2xl p-12 max-w-md w-full shadow-[0_0_100px_rgba(153,27,27,0.3)] text-center relative overflow-hidden animate-in zoom-in-95 duration-1000">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-full bg-red-900/30" />
           <div className="absolute top-1/2 left-0 -translate-y-1/2 w-full h-[1px] bg-red-900/30" />
-          
+
           <button
             onClick={() => setUiState('MINIMIZED')}
             className="absolute top-4 right-4 text-red-900/50 hover:text-red-500 transition-colors z-50"
@@ -105,9 +146,9 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
   const handlePermanentBan = () => {
     if (confirm("WARNING: This is permanent. You will be banned from CodeStake forever and locked out of your account. Do you accept the consequences?")) {
       chrome.runtime.sendMessage(
-        { 
-          action: 'fetch_api', 
-          url: `http://localhost:3000/api/extension/ban`, 
+        {
+          action: 'fetch_api',
+          url: `http://localhost:3000/api/extension/ban`,
           options: {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -121,29 +162,100 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
     }
   };
 
+  const handleStripeCheckout = () => {
+    setIsStripeLoading(true);
+    chrome.runtime.sendMessage(
+      {
+        action: 'fetch_api',
+        url: `http://localhost:3000/api/extension/checkout/stripe`,
+        options: {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, amountCents: Math.abs(walletBalance!) })
+        }
+      },
+      (res) => {
+        setIsStripeLoading(false);
+        if (res?.data?.url) {
+          window.open(res.data.url, '_blank');
+          setCheckoutMode('stripe');
+        } else {
+          alert('Failed to initialize Stripe checkout.');
+        }
+      }
+    );
+  };
+
   if (walletBalance !== null && walletBalance < 0) {
     return (
       <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
         <div className="bg-[#0b0f1e] border border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-red-900/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-orange-500" />
+          {/* Top Controls */}
+          {checkoutMode !== 'none' && (
+            <button
+              onClick={() => setCheckoutMode('none')}
+              className="absolute top-4 left-4 text-slate-500 hover:text-red-500 transition-colors z-50"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
           <button
             onClick={() => setUiState('MINIMIZED')}
-            className="absolute top-4 right-4 text-slate-500 hover:text-red-500 transition-colors"
+            className="absolute top-4 right-4 text-slate-500 hover:text-red-500 transition-colors z-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h2 className="text-2xl font-bold text-red-500 mb-2 uppercase tracking-wider">THE PACT IS BROKEN</h2>
-          <p className="text-slate-300 text-sm mb-6 leading-relaxed">
-            "{getDialogue(personaScore, 'loss')}"
-          </p>
-          <button onClick={() => window.open("http://localhost:3000/wallet", "_blank")} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3 uppercase tracking-wider">
-            RESTORE HONOR (${(Math.abs(walletBalance) / 100).toFixed(2)})
-          </button>
-          <button onClick={handlePermanentBan} className="text-slate-500 hover:text-red-500 text-xs font-bold uppercase tracking-widest underline transition-colors">
-            i quit and will never come here again
-          </button>
+          
+          {checkoutMode === 'stripe' ? (
+            <div className="p-6 border border-indigo-500/30 bg-indigo-500/10 rounded-xl text-center animate-pulse mb-6 mt-8">
+               <p className="text-indigo-400 font-bold uppercase tracking-widest mb-2">Awaiting Payment...</p>
+               <p className="text-sm text-indigo-200/70">Please complete the checkout in the new tab. This screen will unlock automatically.</p>
+               <button onClick={() => setCheckoutMode('none')} className="mt-4 text-xs text-indigo-400 hover:text-indigo-300 underline">Cancel</button>
+            </div>
+          ) : checkoutMode === 'payment_options' ? (
+            <div className="mt-6">
+              <div className="w-full h-[400px] rounded-lg overflow-hidden border border-emerald-500/30 mb-4 bg-white relative shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                 <iframe src={`http://localhost:3000/wallet/embed?userId=${userId}&amount=${Math.abs(walletBalance)}`} className="w-full h-full border-0" />
+              </div>
+
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-px bg-slate-800 flex-1"></div>
+                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">OR</span>
+                <div className="h-px bg-slate-800 flex-1"></div>
+              </div>
+
+              <button onClick={handleStripeCheckout} disabled={isStripeLoading} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-2 rounded-lg transition shadow-[0_0_15px_rgba(79,70,229,0.2)] text-xs uppercase tracking-wider flex justify-center items-center gap-2 disabled:opacity-50">
+                <span>{isStripeLoading ? 'Loading...' : 'Pay with Card (Global)'}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <div className="py-8 px-2 text-center mb-4">
+                <p className="text-red-500/90 font-serif italic text-2xl leading-relaxed drop-shadow-[0_0_12px_rgba(239,68,68,0.4)]">
+                  "{getDialogue(personaScore, 'loss')}"
+                </p>
+              </div>
+              
+              <div className="bg-red-950/30 border border-red-900/50 rounded-lg p-4 mb-6 flex justify-between items-center text-sm">
+                <span className="text-red-200/70 uppercase tracking-widest text-xs font-bold">Penalty Due</span>
+                <span className="text-red-400 font-mono font-black text-xl">${(Math.abs(walletBalance) / 100).toFixed(2)}</span>
+              </div>
+
+              <button onClick={() => setCheckoutMode('payment_options')} className="w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 px-4 rounded-lg transition shadow-[0_0_20px_rgba(220,38,38,0.5)] mb-6 uppercase tracking-[0.2em] text-lg">
+                 RESTORE HONOR
+              </button>
+
+              <button onClick={handlePermanentBan} className="text-slate-500 hover:text-red-500 text-[10px] font-bold uppercase tracking-[0.2em] transition-colors">
+                i quit and will never come here again
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -236,6 +348,17 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
           </svg>
         </button>
 
+        {view !== 'main' && view !== 'active_sessions' && (
+          <button
+            onClick={() => setView('main')}
+            className="absolute top-4 left-4 text-slate-500 hover:text-white transition-colors z-50"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+
         {/* Top Tab Bar Navigation */}
         {(view === 'main' || view === 'active_sessions') && (
           <div className="flex bg-white/5 p-1 rounded-lg mb-6">
@@ -275,7 +398,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                   const url = session.problems.platform === "leetcode"
                     ? `https://leetcode.com/problems/${session.problems.slug}`
                     : "#";
-                    
+
                   return (
                     <a
                       key={session.id}
@@ -354,7 +477,6 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                 </>
               )}
             </div>
-            <button onClick={() => setUiState('MINIMIZED')} className="mt-6 text-slate-500 hover:text-white text-xs uppercase tracking-widest transition">Close</button>
           </div>
         )}
 
@@ -395,8 +517,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                 </div>
               )}
             </div>
-            <button onClick={handleQuickPlay} disabled={isCommitting} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mb-3">{isCommitting ? "..." : "START STAKE"}</button>
-            <button onClick={() => setView('main')} className="text-slate-400 text-sm underline">Back to Dashboard</button>
+            <button onClick={handleQuickPlay} disabled={isCommitting} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mb-1 mt-4">{isCommitting ? "..." : "START STAKE"}</button>
           </div>
         )}
 
@@ -437,8 +558,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                 </div>
               </div>
             </div>
-            <button onClick={() => handleStartContract('blood_pact')} disabled={isCommitting} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg mb-3 shadow-[0_0_15px_rgba(220,38,38,0.4)]">SEAL THE PACT</button>
-            <button onClick={() => setView('main')} className="text-slate-400 text-sm underline">Back to Dashboard</button>
+            <button onClick={() => handleStartContract('blood_pact')} disabled={isCommitting} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg mt-4 shadow-[0_0_15px_rgba(220,38,38,0.4)]">SEAL THE PACT</button>
           </div>
         )}
 
@@ -479,8 +599,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                 </div>
               </div>
             </div>
-            <button onClick={() => handleStartContract('gauntlet')} disabled={isCommitting} className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-lg mb-3 shadow-[0_0_15px_rgba(249,115,22,0.4)]">ENTER THE GAUNTLET</button>
-            <button onClick={() => setView('main')} className="text-slate-400 text-sm underline">Back to Dashboard</button>
+            <button onClick={() => handleStartContract('gauntlet')} disabled={isCommitting} className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-lg mt-4 shadow-[0_0_15px_rgba(249,115,22,0.4)]">ENTER THE GAUNTLET</button>
           </div>
         )}
 
