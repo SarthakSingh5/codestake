@@ -2,6 +2,7 @@
 // It hooks into `window.fetch` to listen for submission results without relying on DOM elements.
 
 const originalFetch = window.fetch;
+const validSubmitIds = new Set();
 
 window.fetch = async function (...args) {
   const response = await originalFetch.apply(this, args);
@@ -19,20 +20,47 @@ window.fetch = async function (...args) {
       url = args[0].href; // URL object
     }
 
-    // LeetCode's submission check API: https://leetcode.com/submissions/detail/{id}/check/
+    // 1. Capture the submission_id from actual Submits (ignoring 'Run Code' which goes to /interpret_solution/)
+    if (url && url.includes('/submit/')) {
+      try {
+        const data = await clone.json();
+        if (data && data.submission_id) {
+          validSubmitIds.add(data.submission_id.toString());
+          console.log("[CodeStake] Captured Submit ID:", data.submission_id);
+        }
+      } catch(e) {
+        // Silently ignore non-JSON /submit/ endpoints
+      }
+    }
+
+    // 2. Poll for the result of the submission
     if (url && url.includes('/submissions/detail/') && url.includes('/check/')) {
+      const match = url.match(/\/submissions\/detail\/(\d+)\/check/);
+      const submissionId = match ? match[1] : null;
+
       const data = await clone.json();
 
       // state is "PENDING" or "STARTED" while running, then "SUCCESS" when finished
       if (data.state === "SUCCESS") {
-        // e.g., "Accepted", "Wrong Answer", "Runtime Error", "Time Limit Exceeded"
-        const verdict = data.status_msg;
+        
+        // A "Run" uses task_name "judger.runcode.celery_task_new"
+        // A "Submit" uses task_name "judger.judgetask.celery_task_new"
+        const isSubmitTask = data.task_name && data.task_name.includes('judgetask');
+        const isMatchedId = submissionId && validSubmitIds.has(submissionId);
 
-        // Broadcast the result securely to our Content Script
-        window.postMessage({
-          type: 'CODESTAKE_SUBMISSION_RESULT',
-          verdict: verdict
-        }, '*');
+        // Only evaluate win/loss if this was a REAL submit, not just a "Run"
+        if (isSubmitTask || isMatchedId) {
+          if (submissionId) validSubmitIds.delete(submissionId); // clean up memory
+
+          // e.g., "Accepted", "Wrong Answer", "Runtime Error", "Time Limit Exceeded"
+          const verdict = data.status_msg;
+
+          // Broadcast the result securely to our Content Script
+          window.postMessage({
+            type: 'CODESTAKE_SUBMISSION_RESULT',
+            verdict: verdict
+          }, '*');
+        }
       }
     }
   } catch (err) {
