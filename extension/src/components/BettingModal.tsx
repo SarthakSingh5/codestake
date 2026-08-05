@@ -37,7 +37,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
   const [isBanned, setIsBanned] = useState<boolean>(false);
   const [activeContract, setActiveContract] = useState<ChallengeContract | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
-  
+
   // Checkout State
   const [checkoutMode, setCheckoutMode] = useState<'none' | 'payment_options' | 'stripe'>('none');
   const [isStripeLoading, setIsStripeLoading] = useState(false);
@@ -211,17 +211,17 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          
+
           {checkoutMode === 'stripe' ? (
             <div className="p-6 border border-indigo-500/30 bg-indigo-500/10 rounded-xl text-center animate-pulse mb-6 mt-8">
-               <p className="text-indigo-400 font-bold uppercase tracking-widest mb-2">Awaiting Payment...</p>
-               <p className="text-sm text-indigo-200/70">Please complete the checkout in the new tab. This screen will unlock automatically.</p>
-               <button onClick={() => setCheckoutMode('none')} className="mt-4 text-xs text-indigo-400 hover:text-indigo-300 underline">Cancel</button>
+              <p className="text-indigo-400 font-bold uppercase tracking-widest mb-2">Awaiting Payment...</p>
+              <p className="text-sm text-indigo-200/70">Please complete the checkout in the new tab. This screen will unlock automatically.</p>
+              <button onClick={() => setCheckoutMode('none')} className="mt-4 text-xs text-indigo-400 hover:text-indigo-300 underline">Cancel</button>
             </div>
           ) : checkoutMode === 'payment_options' ? (
             <div className="mt-6">
               <div className="w-full h-[400px] rounded-lg overflow-hidden border border-emerald-500/30 mb-4 bg-white relative shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                 <iframe src={`http://localhost:3000/wallet/embed?userId=${userId}&amount=${Math.abs(walletBalance)}`} className="w-full h-full border-0" />
+                <iframe src={`http://localhost:3000/wallet/embed?userId=${userId}&amount=${Math.abs(walletBalance)}`} className="w-full h-full border-0" />
               </div>
 
               <div className="flex items-center gap-4 mb-4">
@@ -241,14 +241,14 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                   "{getDialogue(personaScore, 'loss')}"
                 </p>
               </div>
-              
+
               <div className="bg-red-950/30 border border-red-900/50 rounded-lg p-4 mb-6 flex justify-between items-center text-sm">
                 <span className="text-red-200/70 uppercase tracking-widest text-xs font-bold">Penalty Due</span>
                 <span className="text-red-400 font-mono font-black text-xl">${(Math.abs(walletBalance) / 100).toFixed(2)}</span>
               </div>
 
               <button onClick={() => setCheckoutMode('payment_options')} className="w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 px-4 rounded-lg transition shadow-[0_0_20px_rgba(220,38,38,0.5)] mb-6 uppercase tracking-[0.2em] text-lg">
-                 RESTORE HONOR
+                RESTORE HONOR
               </button>
 
               <button onClick={handlePermanentBan} className="text-slate-500 hover:text-red-500 text-[10px] font-bold uppercase tracking-[0.2em] transition-colors">

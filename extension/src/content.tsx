@@ -13,6 +13,7 @@ import { getDialogue } from './lib/PersonalityDialogues';
 function CodeStakeOverlay() {
   const [uiState, setUiState] = useState<UIState>('HIDDEN');
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [hasActiveContract, setHasActiveContract] = useState<boolean>(false);
   const [activeSessionMode, setActiveSessionMode] = useState<string>("time_crunch");
   const [timerEndMs, setTimerEndMs] = useState<number | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -77,6 +78,7 @@ function CodeStakeOverlay() {
           (contractRes) => {
             if (contractRes?.data?.contract) {
               hasActiveChallenge = true;
+              setHasActiveContract(true);
             }
 
             if (hasActiveChallenge) {
@@ -116,7 +118,7 @@ function CodeStakeOverlay() {
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'CODESTAKE_SUBMISSION_RESULT') {
-        if (!activeSessionId) return;
+        if (!activeSessionId && !hasActiveContract) return;
 
         const verdict = event.data.verdict;
         console.log("[CodeStake Content] Interceptor reported verdict:", verdict);
@@ -136,9 +138,18 @@ function CodeStakeOverlay() {
 
             const data = response.data;
             if (data.success) {
-              if (data.resolvedAs === "won" || data.resolvedAs === "contract_progress") {
+              if (data.resolvedAs === "won") {
                 window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'win', text: "VICTORY: Stake Refunded.", score: data.personaScore } }));
                 setActiveSessionId(null);
+                setUiState('MINIMIZED');
+              } else if (data.resolvedAs === "contract_progress") {
+                window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'win', text: "PROGRESS: Target advancing.", score: data.personaScore } }));
+                setActiveSessionId(null);
+                setUiState('MINIMIZED');
+              } else if (data.resolvedAs === "contract_completed") {
+                window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'win', text: "CONQUERED: Contract Complete.", score: data.personaScore } }));
+                setActiveSessionId(null);
+                setHasActiveContract(false);
                 setUiState('MINIMIZED');
               } else if (data.resolvedAs === "lost_one_shot") {
                 window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'fail', text: "Wrong Answer. Stake Lost.", score: data.personaScore } }));
@@ -159,7 +170,7 @@ function CodeStakeOverlay() {
       window.removeEventListener('message', handleMessage);
       window.removeEventListener('CODESTAKE_POPUP', handlePopup);
     };
-  }, [activeSessionId, userId]);
+  }, [activeSessionId, userId, hasActiveContract]);
 
   // Use Custom Hooks for Logic
   useAntiCheat(uiState, activeSessionId, userId, setActiveSessionId, setUiState);

@@ -48,18 +48,17 @@ export default function ActiveSessionsList({ sessions }: { sessions: Session[] }
     <div className="w-full max-w-4xl mx-auto px-4 mt-8 mb-24 relative z-10">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold tracking-widest text-slate-200 uppercase">Active Pacts</h2>
-        
+
         {/* Filter */}
         <div className="flex gap-2">
           {platforms.map((platform) => (
             <button
               key={platform}
               onClick={() => setPlatformFilter(platform)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition ${
-                platformFilter === platform
+              className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition ${platformFilter === platform
                   ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
                   : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10"
-              }`}
+                }`}
             >
               {platform === "all" ? "All Platforms" : platform.toUpperCase()}
             </button>
@@ -93,11 +92,11 @@ export default function ActiveSessionsList({ sessions }: { sessions: Session[] }
                   Active
                 </div>
               </div>
-              
+
               <h3 className="text-lg font-bold text-slate-200 mb-1 group-hover:text-indigo-400 transition-colors">
                 {session.problems.title}
               </h3>
-              
+
               <div className="flex items-center justify-between mt-4 border-t border-white/5 pt-4">
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-semibold">Mode</p>

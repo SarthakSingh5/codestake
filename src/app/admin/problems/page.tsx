@@ -125,9 +125,8 @@ export default async function AdminProblemsPage() {
                 {/* Difficulty */}
                 <div>
                   <span
-                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
-                      difficultyStyles[problem.difficulty] ?? ""
-                    }`}
+                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${difficultyStyles[problem.difficulty] ?? ""
+                      }`}
                   >
                     {problem.difficulty}
                   </span>
@@ -159,17 +158,15 @@ export default async function AdminProblemsPage() {
                   >
                     <button
                       type="submit"
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 transition hover:opacity-80 ${
-                        problem.is_published
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 transition hover:opacity-80 ${problem.is_published
                           ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20"
                           : "bg-slate-500/15 text-slate-400 ring-slate-400/20"
-                      }`}
+                        }`}
                       title={problem.is_published ? "Click to unpublish" : "Click to publish"}
                     >
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          problem.is_published ? "bg-emerald-400" : "bg-slate-500"
-                        }`}
+                        className={`h-1.5 w-1.5 rounded-full ${problem.is_published ? "bg-emerald-400" : "bg-slate-500"
+                          }`}
                       />
                       {problem.is_published ? "Published" : "Draft"}
                     </button>

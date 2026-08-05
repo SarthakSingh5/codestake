@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { userId, sessionId, verdict } = body;
 
-    if (!userId || !sessionId || !verdict) {
+    if (!userId || !verdict) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
     }
 
@@ -81,12 +81,21 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: true, resolvedAs: "lost_expired", personaScore: (w?.persona_score || 0) - 10 }, { headers: corsHeaders });
           }
 
+          const newSolvedToday = contract.problems_solved_today + 1;
+          const newTotalSolved = contract.total_problems_solved + 1;
+          
+          let newStatus = contract.status;
+          if (contract.mode === 'gauntlet' && newTotalSolved >= contract.target_problems_per_day) {
+            newStatus = 'completed';
+          }
+
           // Increment problems solved today
           await adminClient
             .from("challenge_contracts")
             .update({ 
-              problems_solved_today: contract.problems_solved_today + 1,
-              total_problems_solved: contract.total_problems_solved + 1,
+              problems_solved_today: newSolvedToday,
+              total_problems_solved: newTotalSolved,
+              status: newStatus,
               last_updated_at: new Date().toISOString()
             })
             .eq("id", contract.id);
@@ -94,7 +103,8 @@ export async function POST(request: Request) {
           const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
           if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) + 5 }).eq('user_id', userId);
 
-          return NextResponse.json({ success: true, resolvedAs: "contract_progress", personaScore: (w?.persona_score || 0) + 5 }, { headers: corsHeaders });
+          const resolvedAs = newStatus === 'completed' ? 'contract_completed' : 'contract_progress';
+          return NextResponse.json({ success: true, resolvedAs, personaScore: (w?.persona_score || 0) + 5 }, { headers: corsHeaders });
         }
       }
       return NextResponse.json({ success: true, resolvedAs: "continue" }, { headers: corsHeaders });

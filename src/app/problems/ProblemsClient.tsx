@@ -78,11 +78,10 @@ function FilterDropdown({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition cursor-pointer ${
-          isActive
+        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition cursor-pointer ${isActive
             ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300"
             : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
-        }`}
+          }`}
       >
         {label}{isActive ? `: ${value}` : ""}
         <svg className={`w-3.5 h-3.5 transition ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -99,11 +98,10 @@ function FilterDropdown({
                 onChange(option);
                 setOpen(false);
               }}
-              className={`w-full text-left px-3 py-2 text-sm transition ${
-                value === option
+              className={`w-full text-left px-3 py-2 text-sm transition ${value === option
                   ? "bg-indigo-500/15 text-indigo-300"
                   : "text-slate-300 hover:bg-white/[0.05]"
-              }`}
+                }`}
             >
               {option}
             </button>
@@ -151,11 +149,10 @@ function TopicDropdown({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition cursor-pointer ${
-          isActive
+        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition cursor-pointer ${isActive
             ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300"
             : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
-        }`}
+          }`}
       >
         Topics{isActive ? ` (${selected.length})` : ""}
         <svg className={`w-3.5 h-3.5 transition ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -175,11 +172,10 @@ function TopicDropdown({
                 className="w-full flex items-center gap-2 text-left px-3 py-2 text-sm text-slate-300 hover:bg-white/[0.05] transition"
               >
                 <span
-                  className={`flex items-center justify-center w-4 h-4 rounded border transition ${
-                    selected.includes(topic)
+                  className={`flex items-center justify-center w-4 h-4 rounded border transition ${selected.includes(topic)
                       ? "bg-indigo-500 border-indigo-500"
                       : "border-white/20 bg-transparent"
-                  }`}
+                    }`}
                 >
                   {selected.includes(topic) && (
                     <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -394,9 +390,8 @@ export default function ProblemsClient({
 
                 {/* Difficulty */}
                 <span
-                  className={`inline-flex self-start md:self-center w-fit rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
-                    difficultyStyles[problem.difficulty] ?? ""
-                  }`}
+                  className={`inline-flex self-start md:self-center w-fit rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${difficultyStyles[problem.difficulty] ?? ""
+                    }`}
                 >
                   {problem.difficulty}
                 </span>
