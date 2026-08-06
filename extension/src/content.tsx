@@ -146,6 +146,10 @@ function CodeStakeOverlay() {
                 window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'win', text: "PROGRESS: Target advancing.", score: data.personaScore } }));
                 setActiveSessionId(null);
                 setUiState('MINIMIZED');
+              } else if (data.resolvedAs === "daily_quota_met") {
+                window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'win', text: "DAILY QUOTA MET: Maintain the pact.", score: data.personaScore } }));
+                setActiveSessionId(null);
+                setUiState('MINIMIZED');
               } else if (data.resolvedAs === "contract_completed") {
                 window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'win', text: "CONQUERED: Contract Complete.", score: data.personaScore } }));
                 setActiveSessionId(null);

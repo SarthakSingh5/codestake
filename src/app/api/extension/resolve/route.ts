@@ -103,7 +103,13 @@ export async function POST(request: Request) {
           const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
           if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) + 5 }).eq('user_id', userId);
 
-          const resolvedAs = newStatus === 'completed' ? 'contract_completed' : 'contract_progress';
+          let resolvedAs = 'contract_progress';
+          if (newStatus === 'completed') {
+            resolvedAs = 'contract_completed';
+          } else if (contract.mode === 'blood_pact' && newSolvedToday >= contract.target_problems_per_day) {
+            resolvedAs = 'daily_quota_met';
+          }
+
           return NextResponse.json({ success: true, resolvedAs, personaScore: (w?.persona_score || 0) + 5 }, { headers: corsHeaders });
         }
       }

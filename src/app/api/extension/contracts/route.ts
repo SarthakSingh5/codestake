@@ -132,8 +132,7 @@ export async function POST(request: Request) {
     let expiresAt = new Date();
     
     if (mode === 'blood_pact') {
-      // Expires at midnight tonight local time (simplest approach: just +24h for now, or true midnight)
-      // Since users can be in any timezone, we set expiration to 24 hours from now for V1 simplicity.
+      // Expires at midnight tonight local time (simplest approach: just +24h for now)
       expiresAt.setHours(expiresAt.getHours() + 24);
     } else if (mode === 'gauntlet') {
       const durationMinutes = body.durationMinutes || 180;

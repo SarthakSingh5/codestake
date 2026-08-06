@@ -46,7 +46,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
     if (uiState === 'MODAL' && userId) {
       // Fetch Active Contract (which triggers Lazy Evaluation sweep in backend)
       chrome.runtime.sendMessage(
-        { action: 'fetch_api', url: `http://localhost:3000/api/extension/contracts?userId=${userId}` },
+        { action: 'fetch_api', url: `http://localhost:3000/api/extension/contracts?userId=${userId}&t=${Date.now()}` },
         (contractRes) => {
           if (contractRes?.data?.contract) {
             setActiveContract(contractRes.data.contract);
@@ -56,7 +56,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
           // Now fetch Wallet (guarantees sweep debt is reflected)
           chrome.runtime.sendMessage(
-            { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}` },
+            { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}&t=${Date.now()}` },
             (walletRes) => {
               if (walletRes?.data?.balanceCents !== undefined) {
                 setWalletBalance(walletRes.data.balanceCents);

@@ -857,4 +857,3 @@ export default function ProblemWorkspace({
     </div>
   );
 }
-}
