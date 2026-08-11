@@ -24,81 +24,83 @@ export async function GET(request: Request) {
 
     const supabase = createSupabaseAdminClient();
 
-    // Fetch the active contract if it exists
-    const { data: contract, error } = await supabase
+    // Fetch all active contracts
+    const { data: contracts, error } = await supabase
       .from('challenge_contracts')
       .select('*')
       .eq('user_id', userId)
-      .eq('status', 'active')
-      .single();
+      .eq('status', 'active');
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       throw new Error(error.message);
     }
 
-    if (contract) {
-      const now = new Date();
-      const expiresAt = new Date(contract.expires_at);
+    let activeContracts = [];
 
-      if (now > expiresAt) {
-        // LAZY EVALUATION: Contract timer has expired!
-        
-        if (contract.problems_solved_today < contract.target_problems_per_day) {
-          // FAILURE: Did not meet quota
-          await supabase.rpc('incur_debt', {
-            p_user_id: userId,
-            p_amount: contract.penalty_cents
-          });
+    if (contracts && contracts.length > 0) {
+      for (const contract of contracts) {
+        const now = new Date();
+        const expiresAt = new Date(contract.expires_at);
+
+        if (now > expiresAt) {
+          // LAZY EVALUATION: Contract timer has expired!
           
-          await supabase.from('challenge_contracts')
-            .update({ status: 'failed' })
-            .eq('id', contract.id);
+          if (contract.problems_solved_today < contract.target_problems_per_day) {
+            // FAILURE: Did not meet quota
+            await supabase.rpc('incur_debt', {
+              p_user_id: userId,
+              p_amount: contract.penalty_cents
+            });
             
-          // Decrement Persona Score by 10 on failure
-          const { data: walletData } = await supabase.from('wallets').select('persona_score').eq('user_id', userId).single();
-          if (walletData) {
-            await supabase.from('wallets').update({ persona_score: (walletData.persona_score || 0) - 10 }).eq('user_id', userId);
-          }
-            
-          return NextResponse.json({ contract: null }, { status: 200, headers: corsHeaders });
-        } else {
-          // SUCCESS: Met the quota for the day/gauntlet
-          if (contract.mode === 'blood_pact') {
-            if (contract.current_day < contract.target_days) {
-              // Advance to next day
-              const nextExpiresAt = new Date(expiresAt);
-              nextExpiresAt.setHours(nextExpiresAt.getHours() + 24);
+            await supabase.from('challenge_contracts')
+              .update({ status: 'failed' })
+              .eq('id', contract.id);
               
-              const { data: updatedContract } = await supabase.from('challenge_contracts')
-                .update({
-                  current_day: contract.current_day + 1,
-                  problems_solved_today: 0,
-                  expires_at: nextExpiresAt.toISOString()
-                })
-                .eq('id', contract.id)
-                .select()
-                .single();
+            // Decrement Persona Score by 10 on failure
+            const { data: walletData } = await supabase.from('wallets').select('persona_score').eq('user_id', userId).single();
+            if (walletData) {
+              await supabase.from('wallets').update({ persona_score: (walletData.persona_score || 0) - 10 }).eq('user_id', userId);
+            }
+          } else {
+            // SUCCESS: Met the quota for the day/gauntlet
+            if (contract.mode === 'blood_pact') {
+              if (contract.current_day < contract.target_days) {
+                // Advance to next day
+                const nextExpiresAt = new Date(expiresAt);
+                nextExpiresAt.setHours(nextExpiresAt.getHours() + 24);
                 
-              return NextResponse.json({ contract: updatedContract }, { status: 200, headers: corsHeaders });
+                const { data: updatedContract } = await supabase.from('challenge_contracts')
+                  .update({
+                    current_day: contract.current_day + 1,
+                    problems_solved_today: 0,
+                    expires_at: nextExpiresAt.toISOString()
+                  })
+                  .eq('id', contract.id)
+                  .select()
+                  .single();
+                  
+                if (updatedContract) activeContracts.push(updatedContract);
+              } else {
+                // Completed the entire Blood Pact!
+                await supabase.from('challenge_contracts')
+                  .update({ status: 'completed' })
+                  .eq('id', contract.id);
+              }
             } else {
-              // Completed the entire Blood Pact!
+              // Gauntlet completed
               await supabase.from('challenge_contracts')
                 .update({ status: 'completed' })
                 .eq('id', contract.id);
-              return NextResponse.json({ contract: null }, { status: 200, headers: corsHeaders });
             }
-          } else {
-            // Gauntlet completed
-            await supabase.from('challenge_contracts')
-              .update({ status: 'completed' })
-              .eq('id', contract.id);
-            return NextResponse.json({ contract: null }, { status: 200, headers: corsHeaders });
           }
+        } else {
+          // Timer has not expired, still active
+          activeContracts.push(contract);
         }
       }
     }
 
-    return NextResponse.json({ contract: contract || null }, { status: 200, headers: corsHeaders });
+    return NextResponse.json({ contracts: activeContracts }, { status: 200, headers: corsHeaders });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500, headers: corsHeaders });
   }
@@ -115,16 +117,17 @@ export async function POST(request: Request) {
 
     const supabase = createSupabaseAdminClient();
 
-    // 1. Check if they already have an active contract
+    // 1. Check if they already have an active contract of this mode
     const { data: existing } = await supabase
       .from('challenge_contracts')
       .select('id')
       .eq('user_id', userId)
+      .eq('mode', mode)
       .eq('status', 'active')
       .single();
 
     if (existing) {
-      return NextResponse.json({ error: "You already have an active challenge contract." }, { status: 400, headers: corsHeaders });
+      return NextResponse.json({ error: `You already have an active ${mode === 'blood_pact' ? 'Blood Pact' : 'Gauntlet'}.` }, { status: 400, headers: corsHeaders });
     }
 
     // 2. Calculate Expiration

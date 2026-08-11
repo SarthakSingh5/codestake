@@ -35,7 +35,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [personaScore, setPersonaScore] = useState<number>(0);
   const [isBanned, setIsBanned] = useState<boolean>(false);
-  const [activeContract, setActiveContract] = useState<ChallengeContract | null>(null);
+  const [activeContracts, setActiveContracts] = useState<ChallengeContract[]>([]);
   const [isCommitting, setIsCommitting] = useState(false);
 
   // Checkout State
@@ -44,14 +44,14 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
   useEffect(() => {
     if (uiState === 'MODAL' && userId) {
-      // Fetch Active Contract (which triggers Lazy Evaluation sweep in backend)
+      // Fetch Active Contracts (which triggers Lazy Evaluation sweep in backend)
       chrome.runtime.sendMessage(
         { action: 'fetch_api', url: `http://localhost:3000/api/extension/contracts?userId=${userId}&t=${Date.now()}` },
         (contractRes) => {
-          if (contractRes?.data?.contract) {
-            setActiveContract(contractRes.data.contract);
+          if (contractRes?.data?.contracts) {
+            setActiveContracts(contractRes.data.contracts);
           } else {
-            setActiveContract(null);
+            setActiveContracts([]);
           }
 
           // Now fetch Wallet (guarantees sweep debt is reflected)
@@ -186,7 +186,18 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
     );
   };
 
-  if (walletBalance !== null && walletBalance < 0) {
+  if (walletBalance === null) {
+    return (
+      <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center font-sans">
+        <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+        <div className="text-emerald-500 animate-pulse font-mono tracking-widest text-xs font-bold uppercase shadow-emerald-500/50 drop-shadow-md">
+          Establishing Neural Link...
+        </div>
+      </div>
+    );
+  }
+
+  if (walletBalance < 0) {
     return (
       <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
         <div className="bg-[#0b0f1e] border border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-red-900/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
@@ -283,7 +294,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
       (res) => {
         setIsCommitting(false);
         if (res?.data?.contract) {
-          setActiveContract(res.data.contract);
+          setActiveContracts(prev => [...prev, res.data.contract]);
           setView('main');
         } else {
           alert("Error creating contract.");
@@ -431,22 +442,25 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
           <div className="text-center">
             <h2 className="text-2xl font-bold text-white mb-6 tracking-wide">COMMAND DASHBOARD</h2>
 
-            {activeContract && (
-              <div className="mb-6 p-4 rounded-xl border border-red-500/30 bg-red-950/20 text-left">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-red-400 font-bold uppercase tracking-widest text-xs">Active Macro-Stake</h3>
-                  <span className="text-red-500 text-xs font-mono">${(activeContract.penalty_cents / 100).toFixed(2)} PENALTY</span>
-                </div>
-                <h4 className="text-white text-lg mb-1">{activeContract.mode === 'blood_pact' ? 'The Blood Pact' : 'The Gauntlet'}</h4>
-                <div className="text-slate-400 text-sm mb-4">
-                  {activeContract.mode === 'blood_pact'
-                    ? `Day ${activeContract.current_day} of ${activeContract.target_days}. Solved today: ${activeContract.problems_solved_today}/${activeContract.target_problems_per_day}`
-                    : `Gauntlet: Solved ${activeContract.total_problems_solved}/${activeContract.target_problems_per_day}`
-                  }
-                </div>
-                <button onClick={handleSolveForContract} className="w-full bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/50 py-2 rounded transition text-sm font-bold tracking-wider">
-                  SOLVE PROBLEM
-                </button>
+            {activeContracts.length > 0 && (
+              <div className="space-y-4 mb-6">
+                {activeContracts.map(contract => (
+                  <div key={contract.id} className={`p-4 rounded-xl border text-left ${contract.mode === 'blood_pact' ? 'border-red-500/30 bg-red-950/20' : 'border-orange-500/30 bg-orange-950/20'}`}>
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className={`${contract.mode === 'blood_pact' ? 'text-red-400' : 'text-orange-400'} font-bold uppercase tracking-widest text-xs`}>Active {contract.mode === 'blood_pact' ? 'Blood Pact' : 'Gauntlet'}</h3>
+                      <span className={`${contract.mode === 'blood_pact' ? 'text-red-500' : 'text-orange-500'} text-xs font-mono`}>${(contract.penalty_cents / 100).toFixed(2)} PENALTY</span>
+                    </div>
+                    <div className="text-slate-400 text-sm mb-4">
+                      {contract.mode === 'blood_pact'
+                        ? `Day ${contract.current_day} of ${contract.target_days}. Solved today: ${contract.problems_solved_today}/${contract.target_problems_per_day}`
+                        : `Gauntlet: Solved ${contract.total_problems_solved}/${contract.target_problems_per_day}`
+                      }
+                    </div>
+                    <button onClick={handleSolveForContract} className={`w-full ${contract.mode === 'blood_pact' ? 'bg-red-600/20 hover:bg-red-600/40 text-red-400 border-red-500/50' : 'bg-orange-600/20 hover:bg-orange-600/40 text-orange-400 border-orange-500/50'} border py-2 rounded transition text-sm font-bold tracking-wider`}>
+                      SOLVE PROBLEM
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -464,17 +478,17 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                 <div className="text-xs text-slate-400">Micro-stake on a single problem. Fast and brutal.</div>
               </button>
 
-              {!activeContract && (
-                <>
-                  <button onClick={() => setView('blood_pact')} className="bg-white/5 border border-white/10 hover:border-red-500/50 hover:bg-red-950/20 text-white p-4 rounded-xl transition text-left group">
-                    <div className="font-bold text-red-400 mb-1">The Blood Pact</div>
-                    <div className="text-xs text-slate-400">Multi-day streak contract. Miss a day, owe a massive debt.</div>
-                  </button>
-                  <button onClick={() => setView('gauntlet')} className="bg-white/5 border border-white/10 hover:border-orange-500/50 hover:bg-orange-950/20 text-white p-4 rounded-xl transition text-left group">
-                    <div className="font-bold text-orange-400 mb-1">The Gauntlet</div>
-                    <div className="text-xs text-slate-400">Endurance mode. 5 problems back-to-back under a strict timer.</div>
-                  </button>
-                </>
+              {!activeContracts.find(c => c.mode === 'blood_pact') && (
+                <button onClick={() => setView('blood_pact')} className="bg-white/5 border border-white/10 hover:border-red-500/50 hover:bg-red-950/20 text-white p-4 rounded-xl transition text-left group">
+                  <div className="font-bold text-red-400 mb-1">The Blood Pact</div>
+                  <div className="text-xs text-slate-400">Multi-day streak contract. Miss a day, owe a massive debt.</div>
+                </button>
+              )}
+              {!activeContracts.find(c => c.mode === 'gauntlet') && (
+                <button onClick={() => setView('gauntlet')} className="bg-white/5 border border-white/10 hover:border-orange-500/50 hover:bg-orange-950/20 text-white p-4 rounded-xl transition text-left group">
+                  <div className="font-bold text-orange-400 mb-1">The Gauntlet</div>
+                  <div className="text-xs text-slate-400">Endurance mode. 5 problems back-to-back under a strict timer.</div>
+                </button>
               )}
             </div>
           </div>
