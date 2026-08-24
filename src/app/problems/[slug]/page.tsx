@@ -90,7 +90,7 @@ export default async function ProblemDetailPage({
     .single();
 
   return (
-    <div className="h-screen bg-[#02050b] text-slate-100 flex flex-col overflow-hidden">
+    <div className="h-screen bg-white flex flex-col font-sans overflow-hidden">
       <Navbar hideHardcoreToggle={true} />
       <ProblemWorkspace
         problem={{

@@ -21,17 +21,17 @@ type ProblemsClientProps = {
 
 // ── Difficulty badge colors ──────────────────────────────────────────────────
 const difficultyStyles: Record<string, string> = {
-  Easy: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20",
-  Medium: "bg-amber-500/15 text-amber-300 ring-amber-400/20",
-  Hard: "bg-red-500/15 text-red-300 ring-red-400/20",
+  Easy: "bg-[#00ff66] text-black border-2 border-black shadow-[2px_2px_0_0_#000]",
+  Medium: "bg-[#ffcc00] text-black border-2 border-black shadow-[2px_2px_0_0_#000]",
+  Hard: "bg-[#ff3333] text-white border-2 border-black shadow-[2px_2px_0_0_#000]",
 };
 
 // ── Status icons ─────────────────────────────────────────────────────────────
 function StatusIcon({ status }: { status?: "solved" | "attempted" }) {
   if (status === "solved") {
     return (
-      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/20" title="Solved">
-        <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+      <span className="flex items-center justify-center w-5 h-5 rounded-none bg-[#00ff66] border-2 border-black shadow-[2px_2px_0_0_#000]" title="Solved">
+        <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       </span>
@@ -39,8 +39,8 @@ function StatusIcon({ status }: { status?: "solved" | "attempted" }) {
   }
   if (status === "attempted") {
     return (
-      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/20" title="Attempted">
-        <span className="w-2 h-2 rounded-full bg-amber-400" />
+      <span className="flex items-center justify-center w-5 h-5 rounded-none bg-[#ffcc00] border-2 border-black shadow-[2px_2px_0_0_#000]" title="Attempted">
+        <span className="w-2 h-2 bg-black" />
       </span>
     );
   }
@@ -78,19 +78,19 @@ function FilterDropdown({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition cursor-pointer ${isActive
-            ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300"
-            : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
+        className={`inline-flex items-center gap-1.5 border-4 px-3 py-1.5 text-sm font-black uppercase tracking-widest transition cursor-pointer shadow-[4px_4px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] ${isActive
+            ? "border-black bg-[#ffcc00] text-black"
+            : "border-black bg-white text-black hover:bg-gray-200"
           }`}
       >
         {label}{isActive ? `: ${value}` : ""}
-        <svg className={`w-3.5 h-3.5 transition ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`w-3.5 h-3.5 transition ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1.5 z-50 min-w-[140px] rounded-xl border border-white/10 bg-[#0b0f1e] shadow-2xl shadow-black/50 py-1 backdrop-blur-xl">
+        <div className="absolute top-full left-0 mt-2 z-50 min-w-[140px] border-4 border-black bg-white shadow-[6px_6px_0_0_#000]">
           {options.map((option) => (
             <button
               key={option}
@@ -98,9 +98,9 @@ function FilterDropdown({
                 onChange(option);
                 setOpen(false);
               }}
-              className={`w-full text-left px-3 py-2 text-sm transition ${value === option
-                  ? "bg-indigo-500/15 text-indigo-300"
-                  : "text-slate-300 hover:bg-white/[0.05]"
+              className={`w-full text-left px-4 py-3 text-sm font-bold border-b-2 border-black last:border-b-0 transition uppercase ${value === option
+                  ? "bg-[#ffcc00] text-black"
+                  : "text-black hover:bg-gray-100"
                 }`}
             >
               {option}
@@ -149,36 +149,36 @@ function TopicDropdown({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition cursor-pointer ${isActive
-            ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300"
-            : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
+        className={`inline-flex items-center gap-1.5 border-4 px-3 py-1.5 text-sm font-black uppercase tracking-widest transition cursor-pointer shadow-[4px_4px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] ${isActive
+            ? "border-black bg-[#ffcc00] text-black"
+            : "border-black bg-white text-black hover:bg-gray-200"
           }`}
       >
         Topics{isActive ? ` (${selected.length})` : ""}
-        <svg className={`w-3.5 h-3.5 transition ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`w-3.5 h-3.5 transition ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1.5 z-50 min-w-[180px] max-h-[240px] overflow-y-auto rounded-xl border border-white/10 bg-[#0b0f1e] shadow-2xl shadow-black/50 py-1 backdrop-blur-xl">
+        <div className="absolute top-full left-0 mt-2 z-50 min-w-[180px] max-h-[240px] overflow-y-auto border-4 border-black bg-white shadow-[6px_6px_0_0_#000]">
           {allTopics.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-slate-500">No topics available</div>
+            <div className="px-4 py-3 text-xs font-bold text-black uppercase">No topics available</div>
           ) : (
             allTopics.map((topic) => (
               <button
                 key={topic}
                 onClick={() => toggle(topic)}
-                className="w-full flex items-center gap-2 text-left px-3 py-2 text-sm text-slate-300 hover:bg-white/[0.05] transition"
+                className="w-full flex items-center gap-2 text-left px-4 py-3 text-sm font-bold border-b-2 border-black last:border-b-0 hover:bg-gray-100 transition text-black"
               >
                 <span
-                  className={`flex items-center justify-center w-4 h-4 rounded border transition ${selected.includes(topic)
-                      ? "bg-indigo-500 border-indigo-500"
-                      : "border-white/20 bg-transparent"
+                  className={`flex items-center justify-center w-5 h-5 border-2 border-black transition ${selected.includes(topic)
+                      ? "bg-[#00ff66]"
+                      : "bg-white"
                     }`}
                 >
                   {selected.includes(topic) && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
@@ -258,15 +258,15 @@ export default function ProblemsClient({
   return (
     <>
       {/* ── Filter Bar ──────────────────────────────────────────────── */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-4">
         {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-[320px]">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500"
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-black"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
-            strokeWidth={2}
+            strokeWidth={3}
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -276,7 +276,7 @@ export default function ProblemsClient({
             placeholder="Search by # or name…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.03] pl-9 pr-3 py-1.5 text-sm text-white placeholder-slate-500 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/25 transition"
+            className="w-full border-4 border-black bg-white pl-10 pr-4 py-2 text-sm text-black font-bold placeholder-gray-500 focus:outline-none focus:bg-[#ffcc00] transition shadow-[4px_4px_0_0_#000]"
           />
         </div>
 
@@ -303,7 +303,7 @@ export default function ProblemsClient({
         {hasActiveFilters && (
           <button
             onClick={clearAllFilters}
-            className="text-xs text-slate-500 hover:text-white transition ml-1"
+            className="text-xs font-black uppercase text-black hover:bg-black hover:text-white border-2 border-transparent hover:border-black px-2 py-1 transition ml-1"
           >
             Clear all
           </button>
@@ -312,23 +312,23 @@ export default function ProblemsClient({
 
       {/* ── Active Filter Chips ─────────────────────────────────────── */}
       {hasActiveFilters && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="mb-6 flex flex-wrap items-center gap-3">
           {difficultyFilter !== "All" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 text-xs text-indigo-300">
+            <span className="inline-flex items-center gap-1 border-2 border-black bg-white px-3 py-1 text-xs font-bold text-black shadow-[2px_2px_0_0_#000]">
               Difficulty: {difficultyFilter}
-              <button onClick={() => setDifficultyFilter("All")} className="ml-0.5 hover:text-white">×</button>
+              <button onClick={() => setDifficultyFilter("All")} className="ml-1 hover:text-[#ff3333] font-black">×</button>
             </span>
           )}
           {statusFilter !== "All" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 text-xs text-indigo-300">
+            <span className="inline-flex items-center gap-1 border-2 border-black bg-white px-3 py-1 text-xs font-bold text-black shadow-[2px_2px_0_0_#000]">
               Status: {statusFilter}
-              <button onClick={() => setStatusFilter("All")} className="ml-0.5 hover:text-white">×</button>
+              <button onClick={() => setStatusFilter("All")} className="ml-1 hover:text-[#ff3333] font-black">×</button>
             </span>
           )}
           {topicFilter.map((t) => (
-            <span key={t} className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 text-xs text-indigo-300">
+            <span key={t} className="inline-flex items-center gap-1 border-2 border-black bg-white px-3 py-1 text-xs font-bold text-black shadow-[2px_2px_0_0_#000]">
               {t}
-              <button onClick={() => setTopicFilter(topicFilter.filter((x) => x !== t))} className="ml-0.5 hover:text-white">×</button>
+              <button onClick={() => setTopicFilter(topicFilter.filter((x) => x !== t))} className="ml-1 hover:text-[#ff3333] font-black">×</button>
             </span>
           ))}
         </div>
@@ -336,23 +336,23 @@ export default function ProblemsClient({
 
       {/* ── Problems Table ──────────────────────────────────────────── */}
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-[#0b0f1e]/80 p-12 backdrop-blur flex flex-col items-center justify-center text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/10">
-            <span className="text-2xl">{hasActiveFilters ? "🔍" : "📝"}</span>
+        <div className="border-4 border-black bg-white p-12 flex flex-col items-center justify-center text-center shadow-[6px_6px_0_0_#000]">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center border-4 border-black bg-[#ffcc00] shadow-[4px_4px_0_0_#000]">
+            <span className="text-2xl font-black">{hasActiveFilters ? "🔍" : "📝"}</span>
           </div>
-          <h3 className="text-lg font-medium text-white">
+          <h3 className="text-xl font-black uppercase text-black">
             {hasActiveFilters ? "No matching problems" : "No problems available yet"}
           </h3>
-          <p className="mt-2 text-sm text-slate-400 max-w-sm">
+          <p className="mt-2 text-sm text-black font-bold max-w-sm">
             {hasActiveFilters
               ? "Try adjusting your search or filters."
               : "We are currently preparing the problem set. Check back later to start your coding journey."}
           </p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-white/10 bg-[#0b0f1e]/80 backdrop-blur overflow-hidden">
+        <div className="border-4 border-black bg-white overflow-hidden shadow-[6px_6px_0_0_#000]">
           {/* Table header */}
-          <div className="hidden md:grid grid-cols-[28px_auto_1fr_100px_1fr] gap-4 px-6 py-3 border-b border-white/5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="hidden md:grid grid-cols-[36px_auto_1fr_100px_1fr] gap-4 px-6 py-4 border-b-4 border-black bg-[#ffcc00] text-sm font-black text-black uppercase tracking-widest">
             <span>St</span>
             <span className="w-8">#</span>
             <span>Title</span>
@@ -371,7 +371,7 @@ export default function ProblemsClient({
               <Link
                 key={problem.id}
                 href={`/problems/${problem.slug}`}
-                className="grid grid-cols-1 md:grid-cols-[28px_auto_1fr_100px_1fr] gap-3 md:gap-4 px-6 py-4 border-b border-white/5 last:border-b-0 hover:bg-white/[0.03] transition items-center group"
+                className="grid grid-cols-1 md:grid-cols-[36px_auto_1fr_100px_1fr] gap-3 md:gap-4 px-6 py-4 border-b-2 border-black last:border-b-0 hover:bg-gray-100 transition items-center group"
               >
                 {/* Status */}
                 <span className="hidden md:flex">
@@ -379,29 +379,29 @@ export default function ProblemsClient({
                 </span>
 
                 {/* Number */}
-                <span className="hidden md:block w-8 text-sm text-slate-500 font-mono">
+                <span className="hidden md:block w-8 text-sm text-black font-black">
                   {num}
                 </span>
 
                 {/* Title */}
-                <span className="text-sm font-medium text-white group-hover:text-indigo-300 transition">
+                <span className="text-base font-black uppercase text-black group-hover:text-[#ff3333] transition">
                   {problem.title}
                 </span>
 
                 {/* Difficulty */}
                 <span
-                  className={`inline-flex self-start md:self-center w-fit rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${difficultyStyles[problem.difficulty] ?? ""
+                  className={`inline-flex self-start md:self-center w-fit px-2 py-0.5 text-xs font-black uppercase ${difficultyStyles[problem.difficulty] ?? ""
                     }`}
                 >
                   {problem.difficulty}
                 </span>
 
                 {/* Topics */}
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-2">
                   {(problem.topics as string[])?.map((topic: string) => (
                     <span
                       key={topic}
-                      className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400"
+                      className="border-2 border-black bg-white px-2 py-0.5 text-xs font-bold text-black shadow-[2px_2px_0_0_#000]"
                     >
                       {topic}
                     </span>

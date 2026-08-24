@@ -53,20 +53,13 @@ export default async function ProblemsPage() {
   ).sort();
 
   return (
-    <div className="min-h-screen bg-[#02050b] text-slate-100 flex flex-col">
+    <div className="min-h-screen flex flex-col font-sans">
       <Navbar />
       <main className="flex-1 relative">
-        {/* Ambient glow */}
-        <div
-          className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full blur-3xl opacity-20"
-          style={{ background: "radial-gradient(circle, #6366f1 0%, transparent 70%)" }}
-          aria-hidden="true"
-        />
-
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 relative">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-white">Problems</h1>
-            <p className="mt-2 text-sm text-slate-400">
+          <div className="mb-8 border-l-8 border-[#ff3333] pl-6 py-2 bg-white border-y-4 border-r-4 border-black shadow-[4px_4px_0_0_#000]">
+            <h1 className="text-4xl font-black uppercase tracking-tighter text-black">Arena</h1>
+            <p className="mt-2 text-sm text-black font-bold uppercase tracking-widest">
               Select a problem to start coding.
             </p>
           </div>

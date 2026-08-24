@@ -61,46 +61,43 @@ export default async function ProfilePage() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b ${metadata.bgGlow} flex flex-col relative overflow-hidden font-sans`}>
+    <div className="min-h-screen bg-white flex flex-col font-sans">
       <Navbar />
       
-      {/* Background ambient light */}
-      <div className={`absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] ${metadata.bgGlow} opacity-30 pointer-events-none z-0`} />
-
-      {/* The Mirror / Orb */}
-      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-4xl mx-auto px-4 flex-1">
+      <div className="relative flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-4 flex-1 py-16">
         
-        {/* Visual Orb */}
-        <div className="mb-16 relative">
-          <div className={`w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 ${orbClass} ${pulseClass} backdrop-blur-3xl mix-blend-screen transition-all duration-1000`} />
-          <div className={`absolute inset-0 blur-3xl ${orbClass} opacity-50`} />
-        </div>
+        {/* Persona Score Box */}
+        <div className={`nb-box p-12 text-center mb-12 border-8 border-black shadow-[12px_12px_0_0_#000] relative rotate-1 
+          ${score < 0 ? 'bg-[#ff3333]' : score === 0 ? 'bg-[#f0f0f0]' : 'bg-[#00ff66]'}`}>
+          
+          <div className="absolute -top-6 -left-6 bg-black text-white font-black uppercase text-xl px-4 py-2 border-4 border-black shadow-[4px_4px_0_0_#fff]">
+            Persona Score
+          </div>
 
-        {/* Persona Score */}
-        <div className="text-center mb-4 transition-all duration-1000 transform translate-y-0 opacity-100 mt-8">
-          <span className={`text-6xl sm:text-8xl font-light tracking-tighter ${metadata.color} drop-shadow-2xl`}>
+          <div className="text-8xl md:text-[12rem] font-black tracking-tighter text-black drop-shadow-[4px_4px_0_rgba(255,255,255,1)]">
             {score > 0 ? "+" : ""}{score}
-          </span>
+          </div>
         </div>
 
         {/* Tier Name */}
-        <div className="text-center mb-16 transition-all duration-1000 transform translate-y-0 opacity-100">
-          <h1 className={`text-3xl sm:text-5xl font-black uppercase tracking-[0.3em] ${metadata.color} drop-shadow-lg`}>
+        <div className="text-center mb-12 border-y-8 border-black w-full py-6 bg-[#ffcc00] -rotate-1">
+          <h1 className="text-5xl sm:text-7xl font-black uppercase tracking-tighter text-black">
             {metadata.name}
           </h1>
         </div>
 
         {/* The Quote */}
-        <div className="text-center max-w-2xl px-6 transition-all duration-1000 transform translate-y-0 opacity-100 mb-12">
-          <p className="text-lg sm:text-xl md:text-2xl text-slate-300 font-serif italic tracking-wide leading-relaxed">
-            "{metadata.quote}"
+        <div className="text-center max-w-3xl px-8 py-6 mb-16 bg-white border-4 border-black shadow-[6px_6px_0_0_#000] relative">
+          <div className="absolute top-0 left-4 -translate-y-1/2 bg-black text-white px-2 font-black text-4xl">"</div>
+          <p className="text-2xl sm:text-3xl text-black font-bold uppercase tracking-widest leading-relaxed">
+            {metadata.quote}
           </p>
         </div>
 
       </div>
 
       {/* Active Sessions Tracker */}
-      <div className="w-full relative z-10 bg-gradient-to-b from-transparent to-[#02050b] pt-12 pb-24">
+      <div className="w-full relative z-10 bg-white border-t-8 border-black pt-12 pb-24 shadow-[0_-8px_0_0_rgba(0,0,0,0.1)]">
         <ActiveSessionsList sessions={activeSessions || []} />
       </div>
 

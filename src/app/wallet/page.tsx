@@ -54,40 +54,30 @@ export default async function WalletPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="min-h-screen bg-[#02050b] text-slate-100 flex flex-col">
+    <div className="min-h-screen flex flex-col font-sans">
       <Navbar />
       <main className="flex-1 relative overflow-hidden">
-        {/* Ambient glow */}
-        <div
-          className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-96 w-full max-w-3xl rounded-full blur-[120px] opacity-20"
-          style={{ background: "radial-gradient(ellipse, #10b981 0%, transparent 70%)" }}
-          aria-hidden="true"
-        />
-
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 relative z-10">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-white">Wallet</h1>
-            <p className="mt-2 text-sm text-slate-400">
+          <div className="mb-8 border-l-8 border-[#ff3333] pl-6 py-2 bg-white border-y-4 border-r-4 border-black shadow-[4px_4px_0_0_#000]">
+            <h1 className="text-4xl font-black uppercase tracking-tighter text-black">Wallet</h1>
+            <p className="mt-2 text-sm text-black font-bold uppercase tracking-widest">
               Manage your funds and view your transaction history.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {/* Balance Card */}
-            <div className="md:col-span-1 rounded-2xl border border-white/10 bg-[#0b0f1e]/80 p-6 backdrop-blur flex flex-col relative overflow-hidden">
-              {/* Subtle green glow inside card */}
-              <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-              
-              <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Current Debt</h2>
-              <div className="text-4xl font-bold text-white mb-6 font-mono tracking-tight flex items-center">
+            <div className="md:col-span-1 nb-box p-6 flex flex-col relative overflow-hidden bg-[#ffcc00]">
+              <h2 className="text-sm font-black text-black uppercase tracking-widest mb-2 bg-white inline-block border-2 border-black px-2 shadow-[2px_2px_0_0_#000]">Current Debt</h2>
+              <div className="text-4xl font-black text-black mb-6 mt-4 tracking-tighter flex items-center bg-white p-3 border-4 border-black shadow-[inset_4px_4px_0_0_#000]">
                 {balance < 0 ? (
                   <>
-                    <span className="text-red-500 mr-1">-$</span>
+                    <span className="text-[#ff3333] mr-1">-$</span>
                     {Math.abs(balance / 100).toFixed(2)}
                   </>
                 ) : (
                   <>
-                    <span className="text-emerald-400 mr-1">$</span>
+                    <span className="text-[#00ff66] mr-1">+$</span>
                     0.00
                   </>
                 )}
@@ -96,14 +86,14 @@ export default async function WalletPage() {
               {balance < 0 ? (
                 <>
                   <DepositModal debtAmountCents={Math.abs(balance)} />
-                  <p className="text-center text-xs text-red-400 mt-3 font-semibold">
+                  <p className="text-center text-xs text-white bg-black p-2 mt-3 font-black uppercase tracking-widest">
                     You are banished from the arena until paid.
                   </p>
                 </>
               ) : (
-                <div className="mt-auto bg-emerald-500/10 border border-emerald-500/20 rounded-lg py-3 px-4 text-center">
-                  <span className="text-emerald-400 text-sm font-semibold uppercase tracking-wider flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                <div className="mt-auto bg-white border-4 border-black p-3 text-center shadow-[4px_4px_0_0_#000]">
+                  <span className="text-black text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5 text-[#00ff66]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>
                     Clean Slate
                   </span>
                 </div>
@@ -111,54 +101,54 @@ export default async function WalletPage() {
             </div>
 
             {/* Info Card */}
-            <div className="md:col-span-2 rounded-2xl border border-white/10 bg-white/[0.02] p-6 flex flex-col justify-center">
-              <h3 className="text-lg font-semibold text-white mb-3">How Hardcore Mode Works</h3>
-              <ul className="space-y-3 text-sm text-slate-300">
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-400 mt-0.5">✓</span>
-                  <span><strong>No Upfront Fees.</strong> Place a stake instantly without depositing money.</span>
+            <div className="md:col-span-2 nb-box p-6 flex flex-col justify-center bg-white">
+              <h3 className="text-2xl font-black text-black mb-4 uppercase tracking-tighter bg-[#00ff66] inline-block w-fit px-2 border-2 border-black shadow-[2px_2px_0_0_#000] -rotate-1">How Hardcore Mode Works</h3>
+              <ul className="space-y-4 text-sm text-black font-bold">
+                <li className="flex items-start gap-3">
+                  <span className="bg-[#00ff66] border-2 border-black w-6 h-6 flex items-center justify-center shadow-[2px_2px_0_0_#000] mt-0.5">✓</span>
+                  <span><span className="bg-[#ffcc00] px-1 border-2 border-black shadow-[2px_2px_0_0_#000] mr-1">No Upfront Fees.</span> Place a stake instantly without depositing money.</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-400 mt-0.5">✓</span>
-                  <span><strong>Solve it</strong> in time, and your honor is intact. No money is lost.</span>
+                <li className="flex items-start gap-3">
+                  <span className="bg-[#00ff66] border-2 border-black w-6 h-6 flex items-center justify-center shadow-[2px_2px_0_0_#000] mt-0.5">✓</span>
+                  <span><span className="bg-[#ffcc00] px-1 border-2 border-black shadow-[2px_2px_0_0_#000] mr-1">Solve it</span> in time, and your honor is intact. No money is lost.</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-400 mt-0.5">✗</span>
-                  <span><strong>Fail or give up</strong>, and you incur a financial penalty (debt).</span>
+                <li className="flex items-start gap-3">
+                  <span className="bg-[#ff3333] border-2 border-black text-white w-6 h-6 flex items-center justify-center shadow-[2px_2px_0_0_#000] mt-0.5">✗</span>
+                  <span><span className="bg-black text-white px-1 border-2 border-black shadow-[2px_2px_0_0_#000] mr-1">Fail or give up</span>, and you incur a financial penalty (debt).</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-400 mt-0.5">✗</span>
-                  <span><strong>The Banishment:</strong> If you owe a debt, you are permanently locked out of the arena until you pay.</span>
+                <li className="flex items-start gap-3">
+                  <span className="bg-[#ff3333] border-2 border-black text-white w-6 h-6 flex items-center justify-center shadow-[2px_2px_0_0_#000] mt-0.5">✗</span>
+                  <span><span className="bg-black text-white px-1 border-2 border-black shadow-[2px_2px_0_0_#000] mr-1">The Banishment:</span> If you owe a debt, you are permanently locked out until you pay.</span>
                 </li>
               </ul>
             </div>
           </div>
 
           {/* Transactions List */}
-          <div className="rounded-2xl border border-white/10 bg-[#0b0f1e]/80 backdrop-blur overflow-hidden">
-            <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02]">
-              <h3 className="text-lg font-medium text-white">Transaction History</h3>
+          <div className="nb-box overflow-hidden bg-white">
+            <div className="px-6 py-4 border-b-4 border-black bg-black text-white">
+              <h3 className="text-xl font-black uppercase tracking-widest">Transaction History</h3>
             </div>
             
             {!transactions || transactions.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 text-sm">
-                No transactions yet. Deposit funds to get started.
+              <div className="p-8 text-center text-black font-bold uppercase tracking-widest">
+                No transactions yet.
               </div>
             ) : (
-              <div className="divide-y divide-white/5">
+              <div className="divide-y-4 divide-black">
                 {transactions.map((tx) => {
                   const isDeposit = tx.amount_cents > 0;
                   return (
-                    <div key={tx.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition">
+                    <div key={tx.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-100 transition">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-white capitalize">
+                        <span className="text-lg font-black text-black uppercase tracking-tighter">
                           {tx.type.replace("_", " ")}
                         </span>
-                        <span className="text-xs text-slate-500 mt-0.5">
+                        <span className="text-xs text-black font-bold mt-1 tracking-widest border-2 border-black px-1 w-fit">
                           {formatDate(tx.created_at)}
                         </span>
                       </div>
-                      <div className={`font-medium font-mono text-right ${isDeposit ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <div className={`font-black text-2xl text-right p-2 border-4 border-black shadow-[inset_2px_2px_0_0_#000] bg-white ${isDeposit ? 'text-[#00ff66]' : 'text-[#ff3333]'}`}>
                         {isDeposit ? '+' : ''}${(Math.abs(tx.amount_cents) / 100).toFixed(2)}
                       </div>
                     </div>

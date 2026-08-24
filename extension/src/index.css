@@ -1,3 +1,25 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .nb-box {
+    @apply border-4 border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-none;
+  }
+  
+  .nb-btn {
+    @apply border-4 border-black text-black font-black uppercase shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] transition-all rounded-none;
+  }
+
+  .nb-btn-primary {
+    @apply bg-[#00ff66];
+  }
+
+  .nb-btn-danger {
+    @apply bg-[#ff3333];
+  }
+
+  .nb-btn-warning {
+    @apply bg-[#ffcc00];
+  }
+}

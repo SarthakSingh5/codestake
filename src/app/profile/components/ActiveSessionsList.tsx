@@ -37,36 +37,36 @@ export default function ActiveSessionsList({ sessions }: { sessions: Session[] }
   if (sessions.length === 0) {
     return (
       <div className="w-full max-w-4xl mx-auto px-4 mt-8 mb-24 relative z-10">
-        <div className="text-center p-8 border border-white/5 rounded-2xl bg-white/[0.02] backdrop-blur-sm">
-          <p className="text-slate-500 font-serif italic">You have no active pacts.</p>
+        <div className="text-center p-8 border-4 border-black bg-white shadow-[6px_6px_0_0_#000]">
+          <p className="text-black font-black uppercase tracking-widest text-lg">You have no active pacts.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 mt-8 mb-24 relative z-10">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold tracking-widest text-slate-200 uppercase">Active Pacts</h2>
+    <div className="w-full max-w-5xl mx-auto px-4 mt-8 mb-24 relative z-10">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+        <h2 className="text-3xl font-black tracking-tighter text-black uppercase bg-[#00ff66] px-2 border-2 border-black shadow-[4px_4px_0_0_#000] -rotate-1">Active Pacts</h2>
 
         {/* Filter */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {platforms.map((platform) => (
             <button
               key={platform}
               onClick={() => setPlatformFilter(platform)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition ${platformFilter === platform
-                  ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300"
-                  : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10"
+              className={`px-3 py-1.5 text-xs font-black uppercase tracking-widest border-2 transition ${platformFilter === platform
+                  ? "bg-black border-black text-white shadow-[2px_2px_0_0_#000]"
+                  : "bg-white border-black text-black hover:bg-[#ffcc00] shadow-[2px_2px_0_0_#000]"
                 }`}
             >
-              {platform === "all" ? "All Platforms" : platform.toUpperCase()}
+              {platform === "all" ? "All Platforms" : platform}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredSessions.map((session) => {
           // Construct the URL to redirect them back to the problem
           const url = session.problems.platform === "leetcode"
@@ -79,34 +79,34 @@ export default function ActiveSessionsList({ sessions }: { sessions: Session[] }
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group block relative overflow-hidden rounded-xl border border-white/10 bg-[#0b0f1e]/60 p-5 backdrop-blur-md transition hover:border-indigo-500/50 hover:bg-[#0b0f1e]/80 hover:shadow-[0_0_20px_rgba(99,102,241,0.2)]"
+              className="group block relative overflow-hidden border-4 border-black bg-white p-6 transition hover:bg-gray-100 hover:-translate-y-1 hover:-translate-x-1 shadow-[4px_4px_0_0_#000] hover:shadow-[8px_8px_0_0_#000]"
             >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-2">
+              <div className="flex justify-between items-start mb-6">
+                <div className="flex items-center gap-2 bg-[#ffcc00] border-2 border-black px-2 py-1 shadow-[2px_2px_0_0_#000]">
                   <span className="text-lg">{getPlatformIcon(session.problems.platform)}</span>
-                  <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  <span className="text-xs font-black text-black uppercase tracking-widest">
                     {session.problems.platform}
                   </span>
                 </div>
-                <div className="rounded-full bg-red-500/20 border border-red-500/30 px-2 py-0.5 text-[10px] font-bold text-red-400 uppercase tracking-widest animate-pulse">
+                <div className="bg-[#ff3333] border-2 border-black px-2 py-1 text-xs font-black text-white uppercase tracking-widest shadow-[2px_2px_0_0_#000] animate-pulse">
                   Active
                 </div>
               </div>
 
-              <h3 className="text-lg font-bold text-slate-200 mb-1 group-hover:text-indigo-400 transition-colors">
+              <h3 className="text-xl font-black text-black uppercase tracking-tight mb-2 group-hover:text-[#ff3333] transition-colors line-clamp-2">
                 {session.problems.title}
               </h3>
 
-              <div className="flex items-center justify-between mt-4 border-t border-white/5 pt-4">
+              <div className="flex items-center justify-between mt-6 border-t-4 border-black pt-4">
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-semibold">Mode</p>
-                  <p className="text-sm text-slate-300 font-mono">
+                  <p className="text-xs text-black uppercase font-black tracking-widest">Mode</p>
+                  <p className="text-sm text-black font-bold mt-1 bg-white border-2 border-black px-1">
                     {session.mode === 'one_shot' ? '🎯 One Shot' : '⏱️ Time Crunch'}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] text-slate-500 uppercase font-semibold">Stake</p>
-                  <p className="text-sm font-bold text-emerald-400 font-mono">
+                  <p className="text-xs text-black uppercase font-black tracking-widest">Stake</p>
+                  <p className="text-xl font-black text-[#00ff66] bg-black px-2 py-0.5 border-2 border-black mt-1">
                     ${(session.amount_cents / 100).toFixed(2)}
                   </p>
                 </div>
@@ -116,8 +116,8 @@ export default function ActiveSessionsList({ sessions }: { sessions: Session[] }
         })}
       </div>
       {filteredSessions.length === 0 && (
-        <div className="text-center p-8 border border-white/5 rounded-xl bg-white/[0.02]">
-          <p className="text-slate-500 text-sm">No active pacts for this platform.</p>
+        <div className="text-center p-8 border-4 border-black bg-white mt-4 shadow-[4px_4px_0_0_#000]">
+          <p className="text-black font-bold uppercase tracking-widest">No active pacts for this platform.</p>
         </div>
       )}
     </div>

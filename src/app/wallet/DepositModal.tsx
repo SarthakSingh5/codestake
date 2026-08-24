@@ -112,66 +112,57 @@ export default function HonorDebtModal({ debtAmountCents }: { debtAmountCents: n
 
       <button
         onClick={() => setIsOpen(true)}
-        className="mt-auto w-full rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold py-2.5 transition shadow-[0_0_15px_rgba(220,38,38,0.4)] hover:shadow-[0_0_25px_rgba(220,38,38,0.6)] uppercase tracking-wider"
+        className="nb-btn nb-btn-danger mt-auto w-full py-4 text-white text-lg tracking-[0.2em]"
       >
-        Honor Debt
+        RESTORE HONOR
       </button>
 
       {mounted && isOpen && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[#0b0f1e] border border-red-500/30 rounded-2xl w-full max-w-md overflow-hidden flex flex-col shadow-2xl relative">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-white/90 backdrop-blur-sm">
+          <div className="nb-box p-8 max-w-md w-full text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="absolute top-0 left-0 w-full h-2 bg-[#ff3333] border-b-4 border-black" />
             
-            {/* Dark red glow */}
-            <div className="absolute -top-24 -left-24 w-48 h-48 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
+            <button
+              onClick={() => setIsOpen(false)}
+              className="absolute top-4 right-4 text-black hover:bg-[#ff3333] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
 
-            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02] relative z-10">
-              <h2 className="text-xl font-bold text-red-500 uppercase tracking-wide">The Code is Broken</h2>
-              <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white transition">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            <div className="py-8 px-2 text-center mb-4">
+              <h2 className="text-black font-black uppercase text-3xl leading-snug tracking-tighter bg-[#ff3333] text-white p-2 border-4 border-black shadow-[4px_4px_0_0_#000]">
+                THE CODE IS BROKEN
+              </h2>
+            </div>
+
+            <p className="text-black font-bold text-sm mb-6 bg-white border-2 border-black p-4 shadow-[2px_2px_0_0_#000]">
+              You made a commitment to yourself, and you broke it. A true engineer stands by their word. Settle your tab to restore your honor.
+            </p>
+
+            <div className="bg-white border-4 border-black p-4 mb-6 flex justify-between items-center text-sm shadow-[4px_4px_0_0_#000]">
+              <span className="text-black uppercase tracking-widest text-xs font-black">Penalty Due</span>
+              <span className="text-black font-mono font-black text-2xl">${(amountCents / 100).toFixed(2)}</span>
+            </div>
+
+            <div className="space-y-4">
+              <button
+                onClick={handleRazorpay}
+                disabled={isLoading !== null}
+                className="nb-btn w-full py-3 px-4 text-sm bg-[#ffcc00] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading === "razorpay" ? "PROCESSING..." : "PAY WITH RAZORPAY (INDIA)"}
+              </button>
+
+              <button
+                onClick={handleStripe}
+                disabled={isLoading !== null}
+                className="nb-btn nb-btn-primary w-full py-3 px-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading === "stripe" ? "PROCESSING..." : "PAY WITH STRIPE (GLOBAL)"}
               </button>
             </div>
-
-            <div className="p-6 relative z-10">
-              <div className="text-center mb-6">
-                <p className="text-slate-300 text-sm mb-4">
-                  You made a commitment to yourself, and you broke it. A true engineer stands by their word. Settle your tab to restore your honor.
-                </p>
-                <div className="text-4xl font-mono font-bold text-white tracking-tight">
-                  <span className="text-slate-500 mr-1">$</span>
-                  {(amountCents / 100).toFixed(2)}
-                </div>
-              </div>
-
-              <div className="bg-red-950/30 border border-red-900/50 rounded-lg p-4 mb-6 text-sm text-red-200/70">
-                <div className="flex justify-between mb-1">
-                  <span>Penalty Due:</span>
-                  <span className="font-mono text-red-400">${(amountCents / 100).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between mb-1 text-slate-500 text-xs">
-                  <span>Processing Fee:</span>
-                  <span>Added at checkout</span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <button
-                  onClick={handleRazorpay}
-                  disabled={isLoading !== null}
-                  className="w-full relative py-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading === "razorpay" ? "Processing..." : "Pay with Razorpay (India)"}
-                </button>
-
-                <button
-                  onClick={handleStripe}
-                  disabled={isLoading !== null}
-                  className="w-full relative py-3 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(220,38,38,0.3)]"
-                >
-                  {isLoading === "stripe" ? "Processing..." : "Pay with Stripe (Global)"}
-                </button>
-              </div>
-            </div>
-
           </div>
         </div>,
         document.body

@@ -188,9 +188,9 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
   if (walletBalance === null) {
     return (
-      <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center font-sans">
-        <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
-        <div className="text-emerald-500 animate-pulse font-mono tracking-widest text-xs font-bold uppercase shadow-emerald-500/50 drop-shadow-md">
+      <div className="fixed inset-0 z-[99999] bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center font-sans">
+        <div className="w-16 h-16 border-4 border-black border-t-[#00ff66] rounded-full animate-spin mb-4 shadow-[4px_4px_0_0_#000]"></div>
+        <div className="text-black font-mono tracking-widest text-xs font-black uppercase bg-[#00ff66] px-2 py-1 border-2 border-black shadow-[2px_2px_0_0_#000]">
           Establishing Neural Link...
         </div>
       </div>
@@ -199,70 +199,70 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
   if (walletBalance < 0) {
     return (
-      <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
-        <div className="bg-[#0b0f1e] border border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-red-900/20 text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-orange-500" />
-          {/* Top Controls */}
+      <div className="fixed inset-0 z-[99999] bg-white/90 backdrop-blur-sm flex items-center justify-center font-sans p-4">
+        <div className="nb-box p-8 max-w-md w-full text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="absolute top-0 left-0 w-full h-2 bg-[#ff3333] border-b-4 border-black" />
+          
           {checkoutMode !== 'none' && (
             <button
               onClick={() => setCheckoutMode('none')}
-              className="absolute top-4 left-4 text-slate-500 hover:text-red-500 transition-colors z-50"
+              className="absolute top-4 left-4 text-black hover:bg-[#ffcc00] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
           )}
 
           <button
             onClick={() => setUiState('MINIMIZED')}
-            className="absolute top-4 right-4 text-slate-500 hover:text-red-500 transition-colors z-50"
+            className="absolute top-4 right-4 text-black hover:bg-[#ff3333] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
 
           {checkoutMode === 'stripe' ? (
-            <div className="p-6 border border-indigo-500/30 bg-indigo-500/10 rounded-xl text-center animate-pulse mb-6 mt-8">
-              <p className="text-indigo-400 font-bold uppercase tracking-widest mb-2">Awaiting Payment...</p>
-              <p className="text-sm text-indigo-200/70">Please complete the checkout in the new tab. This screen will unlock automatically.</p>
-              <button onClick={() => setCheckoutMode('none')} className="mt-4 text-xs text-indigo-400 hover:text-indigo-300 underline">Cancel</button>
+            <div className="p-6 border-4 border-black bg-[#ffcc00] text-center animate-pulse mb-6 mt-8 shadow-[4px_4px_0_0_#000]">
+              <p className="text-black font-black uppercase tracking-widest mb-2">Awaiting Payment...</p>
+              <p className="text-sm text-black/80 font-bold">Please complete the checkout in the new tab. This screen will unlock automatically.</p>
+              <button onClick={() => setCheckoutMode('none')} className="mt-4 text-xs text-black font-bold underline">Cancel</button>
             </div>
           ) : checkoutMode === 'payment_options' ? (
             <div className="mt-6">
-              <div className="w-full h-[400px] rounded-lg overflow-hidden border border-emerald-500/30 mb-4 bg-white relative shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+              <div className="w-full h-[400px] overflow-hidden border-4 border-black mb-4 bg-white relative shadow-[4px_4px_0_0_#000]">
                 <iframe src={`http://localhost:3000/wallet/embed?userId=${userId}&amount=${Math.abs(walletBalance)}`} className="w-full h-full border-0" />
               </div>
 
               <div className="flex items-center gap-4 mb-4">
-                <div className="h-px bg-slate-800 flex-1"></div>
-                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">OR</span>
-                <div className="h-px bg-slate-800 flex-1"></div>
+                <div className="h-1 bg-black flex-1"></div>
+                <span className="text-[10px] text-black uppercase tracking-widest font-black">OR</span>
+                <div className="h-1 bg-black flex-1"></div>
               </div>
 
-              <button onClick={handleStripeCheckout} disabled={isStripeLoading} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-2 rounded-lg transition shadow-[0_0_15px_rgba(79,70,229,0.2)] text-xs uppercase tracking-wider flex justify-center items-center gap-2 disabled:opacity-50">
+              <button onClick={handleStripeCheckout} disabled={isStripeLoading} className="nb-btn w-full py-3 px-2 text-xs flex justify-center items-center gap-2 disabled:opacity-50">
                 <span>{isStripeLoading ? 'Loading...' : 'Pay with Card (Global)'}</span>
               </button>
             </div>
           ) : (
             <div className="mt-4">
               <div className="py-8 px-2 text-center mb-4">
-                <p className="text-red-500/90 font-serif italic text-2xl leading-relaxed drop-shadow-[0_0_12px_rgba(239,68,68,0.4)]">
+                <p className="text-black font-black uppercase text-3xl leading-snug tracking-tighter bg-[#ff3333] text-white p-2 border-4 border-black shadow-[4px_4px_0_0_#000]">
                   "{getDialogue(personaScore, 'loss')}"
                 </p>
               </div>
 
-              <div className="bg-red-950/30 border border-red-900/50 rounded-lg p-4 mb-6 flex justify-between items-center text-sm">
-                <span className="text-red-200/70 uppercase tracking-widest text-xs font-bold">Penalty Due</span>
-                <span className="text-red-400 font-mono font-black text-xl">${(Math.abs(walletBalance) / 100).toFixed(2)}</span>
+              <div className="bg-white border-4 border-black p-4 mb-6 flex justify-between items-center text-sm shadow-[4px_4px_0_0_#000]">
+                <span className="text-black uppercase tracking-widest text-xs font-black">Penalty Due</span>
+                <span className="text-black font-mono font-black text-2xl">${(Math.abs(walletBalance) / 100).toFixed(2)}</span>
               </div>
 
-              <button onClick={() => setCheckoutMode('payment_options')} className="w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 px-4 rounded-lg transition shadow-[0_0_20px_rgba(220,38,38,0.5)] mb-6 uppercase tracking-[0.2em] text-lg">
+              <button onClick={() => setCheckoutMode('payment_options')} className="nb-btn nb-btn-danger w-full py-4 px-4 mb-6 tracking-[0.2em] text-lg text-white">
                 RESTORE HONOR
               </button>
 
-              <button onClick={handlePermanentBan} className="text-slate-500 hover:text-red-500 text-[10px] font-bold uppercase tracking-[0.2em] transition-colors">
+              <button onClick={handlePermanentBan} className="text-black font-black uppercase tracking-[0.2em] text-[10px] hover:bg-black hover:text-white px-2 py-1 transition-colors border-2 border-transparent hover:border-black">
                 i quit and will never come here again
               </button>
             </div>
@@ -347,35 +347,35 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center font-sans">
-      <div className="bg-[#0b0f1e] border border-emerald-500/30 rounded-2xl p-6 max-w-md w-full shadow-2xl shadow-emerald-900/20 relative overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-400" />
+    <div className="fixed inset-0 z-[99999] bg-white/90 backdrop-blur-sm flex items-center justify-center font-sans p-4">
+      <div className="nb-box p-6 max-w-md w-full relative overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="absolute top-0 left-0 w-full h-2 bg-black" />
         <button
           onClick={() => setUiState('MINIMIZED')}
-          className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors z-50"
+          className="absolute top-4 right-4 text-black hover:bg-[#ff3333] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
         {view !== 'main' && view !== 'active_sessions' && (
           <button
             onClick={() => setView('main')}
-            className="absolute top-4 left-4 text-slate-500 hover:text-white transition-colors z-50"
+            className="absolute top-4 left-4 text-black hover:bg-[#ffcc00] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
         )}
 
         {/* Top Tab Bar Navigation */}
         {(view === 'main' || view === 'active_sessions') && (
-          <div className="flex bg-white/5 p-1 rounded-lg mb-6">
+          <div className="flex border-4 border-black bg-white mb-6 p-1 shadow-[2px_2px_0_0_#000]">
             <button
               onClick={() => setView('main')}
-              className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded transition ${view === 'main' ? 'bg-[#0b0f1e] text-white shadow shadow-emerald-500/10' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`flex-1 py-2 text-xs font-black uppercase tracking-widest border-2 border-transparent transition ${view === 'main' ? 'bg-[#00ff66] border-black shadow-[2px_2px_0_0_#000] text-black' : 'text-black hover:bg-black/5'}`}
             >
               Forge Pact
             </button>
@@ -389,7 +389,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                   }
                 );
               }}
-              className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded transition ${view === 'active_sessions' ? 'bg-[#0b0f1e] text-indigo-400 shadow shadow-indigo-500/10' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`flex-1 py-2 text-xs font-black uppercase tracking-widest border-2 border-transparent transition ${view === 'active_sessions' ? 'bg-[#ffcc00] border-black shadow-[2px_2px_0_0_#000] text-black' : 'text-black hover:bg-black/5'}`}
             >
               Active Pacts
             </button>
@@ -398,11 +398,10 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
         {view === 'active_sessions' && (
           <div>
-
-            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
               {activeSessions.length === 0 ? (
-                <div className="text-center p-6 border border-white/5 rounded-xl bg-white/[0.02]">
-                  <p className="text-slate-500 italic">You have no active pacts.</p>
+                <div className="text-center p-6 border-4 border-black bg-white shadow-[4px_4px_0_0_#000]">
+                  <p className="text-black font-bold uppercase tracking-wider">You have no active pacts.</p>
                 </div>
               ) : (
                 activeSessions.filter(s => s.problems !== null).map(session => {
@@ -416,19 +415,19 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-indigo-500/50 transition-all group"
+                      className="block p-4 border-4 border-black bg-[#fdfdfd] hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] transition-all group"
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-white font-bold text-sm group-hover:text-indigo-400 transition-colors truncate pr-4">
+                      <div className="flex justify-between items-start mb-2 border-b-2 border-black pb-2">
+                        <h3 className="text-black font-black text-sm uppercase truncate pr-4">
                           {session.problems.title}
                         </h3>
-                        <span className="text-xs font-mono text-emerald-400 font-bold whitespace-nowrap">
+                        <span className="text-xs font-mono bg-[#00ff66] px-1 border-2 border-black text-black font-black whitespace-nowrap">
                           ${(session.amount_cents / 100).toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center text-xs text-slate-500 uppercase font-semibold">
-                        <span>{session.problems.platform}</span>
-                        <span>{session.mode === 'one_shot' ? '🎯 One Shot' : '⏱️ Time Crunch'}</span>
+                      <div className="flex justify-between items-center text-xs text-black uppercase font-bold mt-2">
+                        <span className="bg-black text-white px-2 py-0.5">{session.problems.platform}</span>
+                        <span className="bg-[#ffcc00] border-2 border-black px-2 py-0.5">{session.mode === 'one_shot' ? 'One Shot' : 'Time Crunch'}</span>
                       </div>
                     </a>
                   );
@@ -440,23 +439,23 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
         {view === 'main' && (
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-white mb-6 tracking-wide">COMMAND DASHBOARD</h2>
+            <h2 className="text-3xl font-black text-black mb-6 tracking-tighter uppercase bg-[#00ff66] inline-block px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">COMMAND DASHBOARD</h2>
 
             {activeContracts.length > 0 && (
               <div className="space-y-4 mb-6">
                 {activeContracts.map(contract => (
-                  <div key={contract.id} className={`p-4 rounded-xl border text-left ${contract.mode === 'blood_pact' ? 'border-red-500/30 bg-red-950/20' : 'border-orange-500/30 bg-orange-950/20'}`}>
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className={`${contract.mode === 'blood_pact' ? 'text-red-400' : 'text-orange-400'} font-bold uppercase tracking-widest text-xs`}>Active {contract.mode === 'blood_pact' ? 'Blood Pact' : 'Gauntlet'}</h3>
-                      <span className={`${contract.mode === 'blood_pact' ? 'text-red-500' : 'text-orange-500'} text-xs font-mono`}>${(contract.penalty_cents / 100).toFixed(2)} PENALTY</span>
+                  <div key={contract.id} className={`p-4 border-4 border-black text-left shadow-[4px_4px_0_0_#000] ${contract.mode === 'blood_pact' ? 'bg-[#ff3333]' : 'bg-[#ffcc00]'}`}>
+                    <div className="flex justify-between items-center mb-2 bg-white border-2 border-black px-2 py-1">
+                      <h3 className="text-black font-black uppercase tracking-widest text-xs">Active {contract.mode === 'blood_pact' ? 'Blood Pact' : 'Gauntlet'}</h3>
+                      <span className="text-black text-xs font-mono font-black">${(contract.penalty_cents / 100).toFixed(2)} PENALTY</span>
                     </div>
-                    <div className="text-slate-400 text-sm mb-4">
+                    <div className="text-black font-bold text-sm mb-4 bg-white/90 p-2 border-2 border-black">
                       {contract.mode === 'blood_pact'
                         ? `Day ${contract.current_day} of ${contract.target_days}. Solved today: ${contract.problems_solved_today}/${contract.target_problems_per_day}`
                         : `Gauntlet: Solved ${contract.total_problems_solved}/${contract.target_problems_per_day}`
                       }
                     </div>
-                    <button onClick={handleSolveForContract} className={`w-full ${contract.mode === 'blood_pact' ? 'bg-red-600/20 hover:bg-red-600/40 text-red-400 border-red-500/50' : 'bg-orange-600/20 hover:bg-orange-600/40 text-orange-400 border-orange-500/50'} border py-2 rounded transition text-sm font-bold tracking-wider`}>
+                    <button onClick={handleSolveForContract} className="w-full bg-black hover:bg-black/80 text-white border-4 border-transparent py-2 transition text-sm font-black tracking-wider uppercase">
                       SOLVE PROBLEM
                     </button>
                   </div>
@@ -464,30 +463,30 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-4">
               <button
                 onClick={() => {
                   const isProblemPage = window.location.pathname.includes("/problems/") && window.location.pathname.split("/")[2];
                   if (isProblemPage) setView('quick_play');
                 }}
-                className={`p-4 rounded-xl transition text-left group ${(window.location.pathname.includes("/problems/") && window.location.pathname.split("/")[2]) ? "bg-emerald-950/30 border border-emerald-500/20 hover:border-emerald-500/60 hover:bg-emerald-900/40 text-white cursor-pointer" : "bg-slate-900/50 border border-slate-700/50 text-slate-500 cursor-not-allowed opacity-50"}`}
+                className={`p-4 transition text-left group border-4 border-black shadow-[4px_4px_0_0_#000] ${(window.location.pathname.includes("/problems/") && window.location.pathname.split("/")[2]) ? "bg-white hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] cursor-pointer" : "bg-gray-200 text-gray-500 cursor-not-allowed"}`}
               >
-                <div className={`font-bold mb-1 ${(window.location.pathname.includes("/problems/") && window.location.pathname.split("/")[2]) ? "text-emerald-400 group-hover:text-emerald-300" : "text-slate-500"}`}>
+                <div className={`font-black mb-1 uppercase text-lg ${(window.location.pathname.includes("/problems/") && window.location.pathname.split("/")[2]) ? "text-black group-hover:text-[#00ff66]" : "text-gray-500"}`}>
                   Quick Play {(window.location.pathname.includes("/problems/") && window.location.pathname.split("/")[2]) ? "" : "(Nav to problem first)"}
                 </div>
-                <div className="text-xs text-slate-400">Micro-stake on a single problem. Fast and brutal.</div>
+                <div className="text-xs font-bold text-black/70">Micro-stake on a single problem. Fast and brutal.</div>
               </button>
 
               {!activeContracts.find(c => c.mode === 'blood_pact') && (
-                <button onClick={() => setView('blood_pact')} className="bg-white/5 border border-white/10 hover:border-red-500/50 hover:bg-red-950/20 text-white p-4 rounded-xl transition text-left group">
-                  <div className="font-bold text-red-400 mb-1">The Blood Pact</div>
-                  <div className="text-xs text-slate-400">Multi-day streak contract. Miss a day, owe a massive debt.</div>
+                <button onClick={() => setView('blood_pact')} className="bg-[#ff3333] border-4 border-black text-black p-4 transition text-left group hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] shadow-[4px_4px_0_0_#000]">
+                  <div className="font-black text-white text-xl uppercase mb-1 drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">The Blood Pact</div>
+                  <div className="text-xs font-bold bg-white px-2 py-1 border-2 border-black inline-block mt-1">Multi-day streak contract. Miss a day, owe a massive debt.</div>
                 </button>
               )}
               {!activeContracts.find(c => c.mode === 'gauntlet') && (
-                <button onClick={() => setView('gauntlet')} className="bg-white/5 border border-white/10 hover:border-orange-500/50 hover:bg-orange-950/20 text-white p-4 rounded-xl transition text-left group">
-                  <div className="font-bold text-orange-400 mb-1">The Gauntlet</div>
-                  <div className="text-xs text-slate-400">Endurance mode. 5 problems back-to-back under a strict timer.</div>
+                <button onClick={() => setView('gauntlet')} className="bg-[#ffcc00] border-4 border-black text-black p-4 transition text-left group hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] shadow-[4px_4px_0_0_#000]">
+                  <div className="font-black text-black text-xl uppercase mb-1">The Gauntlet</div>
+                  <div className="text-xs font-bold bg-white px-2 py-1 border-2 border-black inline-block mt-1">Endurance mode. 5 problems back-to-back under a strict timer.</div>
                 </button>
               )}
             </div>
@@ -496,124 +495,124 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
         {view === 'quick_play' && (
           <div className="text-center">
-            <h2 className="text-xl font-bold text-emerald-400 mb-4">Quick Play</h2>
-            <div className="bg-white/5 rounded-xl p-4 mb-6 text-left space-y-3">
+            <h2 className="text-3xl font-black text-black mb-4 uppercase tracking-tighter inline-block bg-[#00ff66] px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">Quick Play</h2>
+            <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] p-4 mb-6 text-left space-y-3">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400">Your Stake:</span>
+                <span className="text-black font-black uppercase tracking-widest">Your Stake:</span>
                 <div className="flex gap-4 items-center w-2/3">
-                  <input type="range" min="100" max="10000" step="100" value={stakeAmount} onChange={(e) => setStakeAmount(Number(e.target.value))} className="w-full accent-emerald-500 bg-black/50 rounded-lg appearance-none cursor-pointer h-2" />
+                  <input type="range" min="100" max="10000" step="100" value={stakeAmount} onChange={(e) => setStakeAmount(Number(e.target.value))} className="w-full accent-[#00ff66] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black" />
                   <div className="relative flex items-center justify-end w-24">
-                    <span className="absolute left-2 text-emerald-500 text-xs">$</span>
-                    <input type="number" min="1" value={stakeAmount / 100} onChange={(e) => setStakeAmount(Math.max(1, Number(e.target.value)) * 100)} className="bg-black/50 border border-white/10 focus:border-emerald-500/50 rounded pl-5 pr-2 py-1 text-emerald-400 font-mono font-bold outline-none w-full text-right transition" />
+                    <span className="absolute left-2 text-black font-black text-xs">$</span>
+                    <input type="number" min="1" value={stakeAmount / 100} onChange={(e) => setStakeAmount(Math.max(1, Number(e.target.value)) * 100)} className="bg-[#00ff66] border-2 border-black px-2 py-1 text-black font-mono font-black outline-none w-full text-right" />
                   </div>
                 </div>
               </div>
-              <div className="flex justify-between items-center text-sm pt-2 border-t border-white/5">
-                <span className="text-slate-400">Mode:</span>
+              <div className="flex justify-between items-center text-sm pt-2 border-t-2 border-black">
+                <span className="text-black font-black uppercase tracking-widest">Mode:</span>
                 <div className="flex gap-2 items-center">
-                  <button onClick={() => setStakeMode("time_crunch")} className={`px-2 py-1 rounded text-xs transition ${stakeMode === "time_crunch" ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50' : 'bg-black/50 text-slate-400 border border-white/10 hover:border-white/30'}`}>⏱️ Time Crunch</button>
-                  <button onClick={() => setStakeMode("one_shot")} className={`px-2 py-1 rounded text-xs transition ${stakeMode === "one_shot" ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50' : 'bg-black/50 text-slate-400 border border-white/10 hover:border-white/30'}`}>🎯 One Shot</button>
+                  <button onClick={() => setStakeMode("time_crunch")} className={`px-2 py-1 font-bold text-xs uppercase border-2 transition ${stakeMode === "time_crunch" ? 'bg-black text-white border-black' : 'bg-white text-black border-black hover:bg-gray-100'}`}>⏱️ Time Crunch</button>
+                  <button onClick={() => setStakeMode("one_shot")} className={`px-2 py-1 font-bold text-xs uppercase border-2 transition ${stakeMode === "one_shot" ? 'bg-black text-white border-black' : 'bg-white text-black border-black hover:bg-gray-100'}`}>🎯 One Shot</button>
                 </div>
               </div>
               {stakeMode === "time_crunch" && (
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-400">Timer:</span>
+                  <span className="text-black font-black uppercase tracking-widest">Timer:</span>
                   <div className="flex gap-4 items-center w-2/3">
-                    <input type="range" min="5" max="180" step="5" value={timerDuration} onChange={(e) => setTimerDuration(Number(e.target.value))} className="w-full accent-emerald-500 bg-black/50 rounded-lg appearance-none cursor-pointer h-2" />
+                    <input type="range" min="5" max="180" step="5" value={timerDuration} onChange={(e) => setTimerDuration(Number(e.target.value))} className="w-full accent-black bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black" />
                     <div className="flex flex-col items-end w-24">
                       <div className="relative w-full">
-                        <input type="number" min="5" step="5" value={timerDuration} onChange={(e) => setTimerDuration(Math.max(1, Number(e.target.value)))} className="bg-black/50 border border-white/10 focus:border-emerald-500/50 rounded pl-2 pr-5 py-1 text-emerald-400 font-mono font-bold outline-none w-full text-right transition" />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-500/70 text-xs">m</span>
+                        <input type="number" min="5" step="5" value={timerDuration} onChange={(e) => setTimerDuration(Math.max(1, Number(e.target.value)))} className="bg-white border-2 border-black px-2 py-1 text-black font-mono font-black outline-none w-full text-right" />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-black text-xs font-bold">m</span>
                       </div>
-                      {timerDuration >= 60 && <span className="text-[10px] text-slate-500 mt-1">({Math.floor(timerDuration / 60)}h {timerDuration % 60 > 0 ? `${timerDuration % 60}m` : ''})</span>}
+                      {timerDuration >= 60 && <span className="text-[10px] text-black font-bold mt-1">({Math.floor(timerDuration / 60)}h {timerDuration % 60 > 0 ? `${timerDuration % 60}m` : ''})</span>}
                     </div>
                   </div>
                 </div>
               )}
             </div>
-            <button onClick={handleQuickPlay} disabled={isCommitting} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mb-1 mt-4">{isCommitting ? "..." : "START STAKE"}</button>
+            <button onClick={handleQuickPlay} disabled={isCommitting} className="nb-btn nb-btn-primary w-full py-4 mt-4 text-xl">{isCommitting ? "..." : "START STAKE"}</button>
           </div>
         )}
 
         {view === 'blood_pact' && (
           <div className="text-center">
-            <h2 className="text-xl font-bold text-red-500 mb-2">The Blood Pact</h2>
-            <p className="text-xs text-slate-400 mb-6">If you miss your quota before midnight, you incur a massive debt penalty.</p>
-            <div className="bg-white/5 rounded-xl p-4 mb-6 text-left space-y-4">
+            <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter inline-block bg-[#ff3333] px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">The Blood Pact</h2>
+            <p className="text-xs font-bold text-black mb-6 bg-[#ffcc00] px-2 py-1 inline-block border-2 border-black">If you miss your quota before midnight, you incur a massive debt.</p>
+            <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] p-4 mb-6 text-left space-y-4">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400">Length:</span>
+                <span className="text-black font-black uppercase tracking-widest">Length:</span>
                 <div className="flex gap-4 items-center w-2/3">
-                  <input type="range" min="1" max="100" step="1" value={pactDays} onChange={(e) => setPactDays(Number(e.target.value))} className="w-full accent-red-500 bg-black/50 rounded-lg appearance-none cursor-pointer h-2" />
+                  <input type="range" min="1" max="100" step="1" value={pactDays} onChange={(e) => setPactDays(Number(e.target.value))} className="w-full accent-[#ff3333] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black" />
                   <div className="flex flex-col items-end w-24">
                     <div className="relative w-full">
-                      <input type="number" min="1" value={pactDays} onChange={(e) => setPactDays(Math.max(1, Number(e.target.value)))} className="bg-black/50 border border-white/10 focus:border-red-500/50 rounded pl-2 pr-5 py-1 text-red-400 font-mono font-bold outline-none w-full text-right transition" />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500/70 text-xs">d</span>
+                      <input type="number" min="1" value={pactDays} onChange={(e) => setPactDays(Math.max(1, Number(e.target.value)))} className="bg-white border-2 border-black px-2 py-1 text-black font-mono font-black outline-none w-full text-right" />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-black text-xs font-bold">d</span>
                     </div>
-                    {pactDays >= 30 && <span className="text-[10px] text-slate-500 mt-1">(~{(pactDays / 30).toFixed(1)}m)</span>}
+                    {pactDays >= 30 && <span className="text-[10px] text-black font-bold mt-1">(~{(pactDays / 30).toFixed(1)}m)</span>}
                   </div>
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400">Daily Quota:</span>
-                <div className="flex items-center gap-3 bg-black/50 rounded-lg border border-white/10 p-1">
-                  <button onClick={() => setPactProblems(Math.max(1, pactProblems - 1))} className="w-6 h-6 rounded bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white flex items-center justify-center transition">-</button>
-                  <span className="text-red-400 font-mono font-bold w-4 text-center">{pactProblems}</span>
-                  <button onClick={() => setPactProblems(Math.min(10, pactProblems + 1))} className="w-6 h-6 rounded bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white flex items-center justify-center transition">+</button>
+                <span className="text-black font-black uppercase tracking-widest">Daily Quota:</span>
+                <div className="flex items-center gap-3 bg-white border-2 border-black p-1">
+                  <button onClick={() => setPactProblems(Math.max(1, pactProblems - 1))} className="w-6 h-6 bg-black hover:bg-gray-800 text-white font-bold flex items-center justify-center">-</button>
+                  <span className="text-black font-mono font-black w-4 text-center">{pactProblems}</span>
+                  <button onClick={() => setPactProblems(Math.min(10, pactProblems + 1))} className="w-6 h-6 bg-black hover:bg-gray-800 text-white font-bold flex items-center justify-center">+</button>
                 </div>
               </div>
-              <div className="flex justify-between items-center text-sm pt-2 border-t border-white/5">
-                <span className="text-red-400 font-bold">Failure Penalty:</span>
+              <div className="flex justify-between items-center text-sm pt-2 border-t-2 border-black">
+                <span className="text-[#ff3333] font-black uppercase tracking-widest">Failure Penalty:</span>
                 <div className="flex gap-4 items-center w-2/3">
-                  <input type="range" min="500" max="50000" step="500" value={pactPenalty} onChange={(e) => setPactPenalty(Number(e.target.value))} className="w-full accent-red-500 bg-black/50 rounded-lg appearance-none cursor-pointer h-2" />
+                  <input type="range" min="500" max="50000" step="500" value={pactPenalty} onChange={(e) => setPactPenalty(Number(e.target.value))} className="w-full accent-[#ff3333] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black" />
                   <div className="relative flex items-center justify-end w-24">
-                    <span className="absolute left-2 text-red-500 text-xs">$</span>
-                    <input type="number" min="5" value={pactPenalty / 100} onChange={(e) => setPactPenalty(Math.max(1, Number(e.target.value)) * 100)} className="bg-black/50 border border-red-500/30 focus:border-red-500 rounded pl-5 pr-2 py-1 text-red-400 font-mono font-bold outline-none w-full text-right transition" />
+                    <span className="absolute left-2 text-white font-black text-xs">$</span>
+                    <input type="number" min="5" value={pactPenalty / 100} onChange={(e) => setPactPenalty(Math.max(1, Number(e.target.value)) * 100)} className="bg-[#ff3333] text-white border-2 border-black px-2 py-1 font-mono font-black outline-none w-full text-right" />
                   </div>
                 </div>
               </div>
             </div>
-            <button onClick={() => handleStartContract('blood_pact')} disabled={isCommitting} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg mt-4 shadow-[0_0_15px_rgba(220,38,38,0.4)]">SEAL THE PACT</button>
+            <button onClick={() => handleStartContract('blood_pact')} disabled={isCommitting} className="nb-btn nb-btn-danger w-full text-white py-4 mt-4 text-xl">SEAL THE PACT</button>
           </div>
         )}
 
         {view === 'gauntlet' && (
           <div className="text-center">
-            <h2 className="text-xl font-bold text-orange-500 mb-2">The Gauntlet</h2>
-            <p className="text-xs text-slate-400 mb-6">Complete 5 problems back-to-back in under 3 hours. No pauses.</p>
-            <div className="bg-white/5 rounded-xl p-4 mb-6 text-left space-y-4">
+            <h2 className="text-3xl font-black text-black mb-2 uppercase tracking-tighter inline-block bg-[#ffcc00] px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">The Gauntlet</h2>
+            <p className="text-xs font-bold text-black mb-6 bg-white px-2 py-1 inline-block border-2 border-black">Complete 5 problems back-to-back in under 3 hours. No pauses.</p>
+            <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] p-4 mb-6 text-left space-y-4">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400">Target Problems:</span>
-                <div className="flex items-center gap-3 bg-black/50 rounded-lg border border-white/10 p-1">
-                  <button onClick={() => setGauntletProblems(Math.max(1, gauntletProblems - 1))} className="w-6 h-6 rounded bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white flex items-center justify-center transition">-</button>
-                  <span className="text-orange-400 font-mono font-bold w-4 text-center">{gauntletProblems}</span>
-                  <button onClick={() => setGauntletProblems(Math.min(20, gauntletProblems + 1))} className="w-6 h-6 rounded bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white flex items-center justify-center transition">+</button>
+                <span className="text-black font-black uppercase tracking-widest">Target Problems:</span>
+                <div className="flex items-center gap-3 bg-white border-2 border-black p-1">
+                  <button onClick={() => setGauntletProblems(Math.max(1, gauntletProblems - 1))} className="w-6 h-6 bg-black hover:bg-gray-800 text-white font-bold flex items-center justify-center">-</button>
+                  <span className="text-black font-mono font-black w-4 text-center">{gauntletProblems}</span>
+                  <button onClick={() => setGauntletProblems(Math.min(20, gauntletProblems + 1))} className="w-6 h-6 bg-black hover:bg-gray-800 text-white font-bold flex items-center justify-center">+</button>
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400">Time Limit:</span>
+                <span className="text-black font-black uppercase tracking-widest">Time Limit:</span>
                 <div className="flex gap-4 items-center w-2/3">
-                  <input type="range" min="30" max="300" step="30" value={gauntletMinutes} onChange={(e) => setGauntletMinutes(Number(e.target.value))} className="w-full accent-orange-500 bg-black/50 rounded-lg appearance-none cursor-pointer h-2" />
+                  <input type="range" min="30" max="300" step="30" value={gauntletMinutes} onChange={(e) => setGauntletMinutes(Number(e.target.value))} className="w-full accent-[#ffcc00] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black" />
                   <div className="flex flex-col items-end w-24">
                     <div className="relative w-full">
-                      <input type="number" min="30" step="30" value={gauntletMinutes} onChange={(e) => setGauntletMinutes(Math.max(1, Number(e.target.value)))} className="bg-black/50 border border-white/10 focus:border-orange-500/50 rounded pl-2 pr-5 py-1 text-orange-400 font-mono font-bold outline-none w-full text-right transition" />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-orange-500/70 text-xs">m</span>
+                      <input type="number" min="30" step="30" value={gauntletMinutes} onChange={(e) => setGauntletMinutes(Math.max(1, Number(e.target.value)))} className="bg-white border-2 border-black px-2 py-1 text-black font-mono font-black outline-none w-full text-right" />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-black text-xs font-bold">m</span>
                     </div>
-                    {gauntletMinutes >= 60 && <span className="text-[10px] text-slate-500 mt-1">({Math.floor(gauntletMinutes / 60)}h {gauntletMinutes % 60 > 0 ? `${gauntletMinutes % 60}m` : ''})</span>}
+                    {gauntletMinutes >= 60 && <span className="text-[10px] text-black font-bold mt-1">({Math.floor(gauntletMinutes / 60)}h {gauntletMinutes % 60 > 0 ? `${gauntletMinutes % 60}m` : ''})</span>}
                   </div>
                 </div>
               </div>
-              <div className="flex justify-between items-center text-sm pt-2 border-t border-white/5">
-                <span className="text-orange-400 font-bold">Failure Penalty:</span>
+              <div className="flex justify-between items-center text-sm pt-2 border-t-2 border-black">
+                <span className="text-[#ff3333] font-black uppercase tracking-widest">Failure Penalty:</span>
                 <div className="flex gap-4 items-center w-2/3">
-                  <input type="range" min="500" max="50000" step="500" value={pactPenalty} onChange={(e) => setPactPenalty(Number(e.target.value))} className="w-full accent-orange-500 bg-black/50 rounded-lg appearance-none cursor-pointer h-2" />
+                  <input type="range" min="500" max="50000" step="500" value={pactPenalty} onChange={(e) => setPactPenalty(Number(e.target.value))} className="w-full accent-[#ff3333] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black" />
                   <div className="relative flex items-center justify-end w-24">
-                    <span className="absolute left-2 text-orange-500 text-xs">$</span>
-                    <input type="number" min="5" value={pactPenalty / 100} onChange={(e) => setPactPenalty(Math.max(1, Number(e.target.value)) * 100)} className="bg-black/50 border border-orange-500/30 focus:border-orange-500 rounded pl-5 pr-2 py-1 text-orange-400 font-mono font-bold outline-none w-full text-right transition" />
+                    <span className="absolute left-2 text-white font-black text-xs">$</span>
+                    <input type="number" min="5" value={pactPenalty / 100} onChange={(e) => setPactPenalty(Math.max(1, Number(e.target.value)) * 100)} className="bg-[#ff3333] text-white border-2 border-black px-2 py-1 font-mono font-black outline-none w-full text-right" />
                   </div>
                 </div>
               </div>
             </div>
-            <button onClick={() => handleStartContract('gauntlet')} disabled={isCommitting} className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-lg mt-4 shadow-[0_0_15px_rgba(249,115,22,0.4)]">ENTER THE GAUNTLET</button>
+            <button onClick={() => handleStartContract('gauntlet')} disabled={isCommitting} className="nb-btn nb-btn-warning w-full py-4 mt-4 text-xl">ENTER THE GAUNTLET</button>
           </div>
         )}
 

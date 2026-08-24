@@ -35,30 +35,25 @@ export default async function Navbar({ hideHardcoreToggle = false }: { hideHardc
   };
 
   return (
-    <nav className={`border-b backdrop-blur sticky top-0 z-50 transition-colors duration-500 ${isHardcoreEnabled ? "border-red-900/50 bg-[#050101]/90" : "border-white/10 bg-[#02050b]/80"}`}>
+    <nav className={`border-b-4 border-black sticky top-0 z-50 transition-colors duration-500 ${isHardcoreEnabled ? "bg-[#ff3333]" : "bg-[#ffcc00]"}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 shadow-lg transition ${isHardcoreEnabled ? "bg-red-500/20 ring-red-400/50 shadow-red-900/40" : "bg-indigo-500/20 ring-indigo-400/30 shadow-indigo-900/30 group-hover:ring-indigo-400/60"}`}>
-                <svg className={`h-5 w-5 ${isHardcoreEnabled ? "text-red-400" : "text-indigo-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z" />
-                </svg>
-              </div>
-              <span className="text-lg font-bold tracking-tight text-white">CodeStake</span>
+            <Link href="/" className="flex items-center gap-2 group bg-white border-4 border-black px-3 py-1 shadow-[4px_4px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] transition-all">
+              <span className="text-xl font-black uppercase tracking-tighter text-black">CodeStake</span>
             </Link>
             
             <div className="hidden md:block">
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
                 <Link
                   href="/problems"
-                  className="rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition"
+                  className="px-4 py-2 text-sm font-black uppercase text-black border-2 border-transparent hover:border-black hover:bg-white transition-colors"
                 >
-                  Problems
+                  Arena
                 </Link>
                 <Link
                   href="/extension"
-                  className="rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition"
+                  className="px-4 py-2 text-sm font-black uppercase text-black border-2 border-transparent hover:border-black hover:bg-white transition-colors"
                 >
                   Extension
                 </Link>
@@ -66,18 +61,18 @@ export default async function Navbar({ hideHardcoreToggle = false }: { hideHardc
                   <>
                     <Link
                       href="/profile"
-                      className="rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition"
+                      className="px-4 py-2 text-sm font-black uppercase text-black border-2 border-transparent hover:border-black hover:bg-white transition-colors"
                     >
                       Profile
                     </Link>
                     <Link
                       href="/wallet"
-                      className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition"
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-black uppercase text-black border-2 border-transparent hover:border-black hover:bg-white transition-colors"
                     >
-                    Wallet
-                    <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
-                      {formatCurrency(walletBalance)}
-                    </span>
+                      Wallet
+                      <span className="inline-flex items-center bg-white border-2 border-black px-2 py-0.5 text-xs font-black text-black">
+                        {formatCurrency(walletBalance)}
+                      </span>
                     </Link>
                   </>
                 )}
@@ -99,9 +94,9 @@ export default async function Navbar({ hideHardcoreToggle = false }: { hideHardc
               >
                 <button
                   type="submit"
-                  className="rounded-lg bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white"
+                  className="bg-black text-white px-4 py-2 text-sm font-black uppercase border-2 border-black hover:bg-white hover:text-black transition-colors"
                 >
-                  Sign out
+                  Disconnect
                 </button>
               </form>
             )}

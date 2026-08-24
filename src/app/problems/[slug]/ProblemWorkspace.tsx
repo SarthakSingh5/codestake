@@ -62,9 +62,9 @@ type ProblemWorkspaceProps = {
 
 // ── Difficulty badge colors ──────────────────────────────────────────────────
 const difficultyStyles: Record<string, string> = {
-  Easy: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20",
-  Medium: "bg-amber-500/15 text-amber-300 ring-amber-400/20",
-  Hard: "bg-red-500/15 text-red-300 ring-red-400/20",
+  Easy: "bg-[#00ff66] text-black border-2 border-black shadow-[2px_2px_0_0_#000]",
+  Medium: "bg-[#ffcc00] text-black border-2 border-black shadow-[2px_2px_0_0_#000]",
+  Hard: "bg-[#ff3333] text-white border-2 border-black shadow-[2px_2px_0_0_#000]",
 };
 
 import { createStakeSession, failStakeSession } from "@/app/actions/stake";
@@ -306,16 +306,16 @@ export default function ProblemWorkspace({
   function verdictStyle(verdict: string): string {
     switch (verdict) {
       case "accepted":
-        return "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20";
+        return "bg-[#00ff66] text-black border-2 border-black shadow-[2px_2px_0_0_#000]";
       case "wrong_answer":
-        return "bg-red-500/15 text-red-300 ring-red-400/20";
+        return "bg-[#ff3333] text-white border-2 border-black shadow-[2px_2px_0_0_#000]";
       case "time_limit":
-        return "bg-amber-500/15 text-amber-300 ring-amber-400/20";
+        return "bg-[#ffcc00] text-black border-2 border-black shadow-[2px_2px_0_0_#000]";
       case "runtime_error":
       case "compilation_error":
-        return "bg-red-500/15 text-red-300 ring-red-400/20";
+        return "bg-[#ff3333] text-white border-2 border-black shadow-[2px_2px_0_0_#000]";
       default:
-        return "bg-slate-500/15 text-slate-300 ring-slate-400/20";
+        return "bg-white text-black border-2 border-black shadow-[2px_2px_0_0_#000]";
     }
   }
 
@@ -339,25 +339,25 @@ export default function ProblemWorkspace({
 
       {/* ────────────────────── STAKE OVERLAY NAVBAR ────────────────────────── */}
       {activeSession && !showWagerModal && (
-        <div className="fixed top-0 left-0 w-full h-[64px] bg-red-600/95 z-50 flex items-center justify-between px-6 shadow-lg shadow-red-900/20 backdrop-blur-md border-b border-red-500/50">
+        <div className="fixed top-0 left-0 w-full h-[64px] bg-[#ff3333] z-50 flex items-center justify-between px-6 border-b-4 border-black shadow-[0_4px_0_0_#000]">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1 bg-black/30 rounded-full border border-black/20">
+            <div className="flex items-center gap-2 px-3 py-1 bg-white border-4 border-black shadow-[4px_4px_0_0_#000] -rotate-1">
               <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full bg-[#ff3333] opacity-75"></span>
+                <span className="relative inline-flex h-3 w-3 bg-black"></span>
               </span>
-              <span className="text-sm font-bold text-white tracking-wide">
+              <span className="text-sm font-black text-black tracking-widest uppercase">
                 STAKE ACTIVE: ${(activeSession.amount_cents / 100).toFixed(2)}
               </span>
-              <span className="ml-2 uppercase text-xs tracking-widest text-red-200">
-                ({activeSession.mode.replace("_", " ")})
+              <span className="ml-2 uppercase text-xs font-bold tracking-widest text-black bg-[#ffcc00] px-1 border-2 border-black">
+                {activeSession.mode.replace("_", " ")}
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-6">
             {activeSession.mode === "time_crunch" && (
-              <span className="text-white font-mono text-xl bg-black/40 border border-white/10 px-4 py-1.5 rounded-lg tracking-widest shadow-inner shadow-black/50">
+              <span className="text-black font-black text-2xl bg-white border-4 border-black px-4 py-1 tracking-widest shadow-[inset_4px_4px_0_0_#000]">
                 {timeLeft || "..."}
               </span>
             )}
@@ -369,7 +369,7 @@ export default function ProblemWorkspace({
                   router.refresh(); // Refresh server components
                 }
               }}
-              className="text-sm font-bold text-white underline decoration-red-300/50 hover:decoration-white transition underline-offset-4"
+              className="text-sm font-black uppercase text-white bg-black border-2 border-black px-4 py-2 hover:bg-white hover:text-black transition-colors"
             >
               Give Up (Lose Stake)
             </button>
@@ -380,31 +380,28 @@ export default function ProblemWorkspace({
       <div className="flex flex-1 overflow-hidden relative">
         {/* Hardcore Mode: Wager Modal Overlay (blocks entire screen) */}
         {showWagerModal && (
-          <div className="absolute inset-0 bg-[#02050b] z-50 flex flex-col items-center justify-center p-6">
-            <div className="bg-[#0b0f1e] border border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-red-900/20 text-center relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-orange-500" />
+          <div className="absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center p-6 backdrop-blur-sm">
+            <div className="nb-box p-8 max-w-md w-full text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="absolute top-0 left-0 w-full h-2 bg-[#ff3333] border-b-4 border-black" />
 
-              <h2 className="text-2xl font-bold text-white mb-2 flex items-center justify-center gap-2">
-                <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+              <h2 className="text-3xl font-black text-black mb-4 uppercase tracking-tighter bg-[#ffcc00] inline-block px-4 py-2 border-4 border-black shadow-[4px_4px_0_0_#000] -rotate-2">
                 Hardcore Mode
               </h2>
-              <p className="text-slate-400 text-sm mb-6">
+              <p className="text-black font-bold uppercase tracking-widest text-sm mb-6">
                 You must stake real money to view this problem. Configure your challenge below.
               </p>
 
-              <div className="bg-white/5 rounded-xl p-4 mb-6 text-left space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Wallet Balance:</span>
-                  <span className="text-emerald-400 font-mono font-medium">${(walletBalance / 100).toFixed(2)}</span>
+              <div className="bg-white border-4 border-black p-6 mb-6 text-left space-y-4 shadow-[6px_6px_0_0_#000]">
+                <div className="flex justify-between items-center text-sm border-b-2 border-black pb-2">
+                  <span className="text-black font-black uppercase tracking-widest">Wallet Balance:</span>
+                  <span className="text-white bg-[#00ff66] px-2 py-1 font-black text-lg border-2 border-black">${(walletBalance / 100).toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-400">Your Stake:</span>
+                <div className="flex justify-between items-center text-sm border-b-2 border-black pb-2">
+                  <span className="text-black font-black uppercase tracking-widest">Your Stake:</span>
                   <select
                     value={stakeAmount}
                     onChange={(e) => setStakeAmount(Number(e.target.value))}
-                    className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white font-mono"
+                    className="bg-white border-2 border-black rounded-none px-2 py-1 text-black font-black cursor-pointer hover:bg-gray-100"
                   >
                     <option value={100}>$1.00</option>
                     <option value={500}>$5.00</option>
@@ -412,34 +409,34 @@ export default function ProblemWorkspace({
                     <option value={2000}>$20.00</option>
                   </select>
                 </div>
-                <div className="flex justify-between items-center text-sm pt-2 border-t border-white/5">
-                  <span className="text-slate-400">Challenge Mode:</span>
+                <div className="flex justify-between items-center text-sm border-b-2 border-black pb-2">
+                  <span className="text-black font-black uppercase tracking-widest">Challenge Mode:</span>
                   <select
                     value={stakeMode}
                     onChange={(e) => setStakeMode(e.target.value)}
-                    className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                    className="bg-white border-2 border-black rounded-none px-2 py-1 text-black font-black text-xs cursor-pointer hover:bg-gray-100"
                   >
                     <option value="time_crunch">⏱️ Time Crunch (Unlimited Tries)</option>
                     <option value="one_shot">🎯 One Shot (1 Try Only)</option>
                   </select>
                 </div>
                 {stakeMode === "time_crunch" && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-400">Timer (minutes):</span>
+                  <div className="flex justify-between items-center text-sm pb-2">
+                    <span className="text-black font-black uppercase tracking-widest">Timer (min):</span>
                     <input
                       type="number"
                       min="1"
                       max="1440"
                       value={timerDuration}
                       onChange={(e) => setTimerDuration(Number(e.target.value) || 1)}
-                      className="bg-black/50 border border-white/10 rounded px-2 py-1 text-white text-xs w-24 text-right"
+                      className="bg-white border-2 border-black rounded-none px-2 py-1 text-black font-black text-xs w-24 text-right"
                     />
                   </div>
                 )}
               </div>
 
               {stakeError && (
-                <div className="text-red-400 text-sm mb-4 bg-red-500/10 py-2 rounded">
+                <div className="text-white bg-black border-4 border-[#ff3333] font-bold text-sm mb-6 p-4 shadow-[4px_4px_0_0_#ff3333]">
                   {stakeError}
                 </div>
               )}
@@ -447,7 +444,7 @@ export default function ProblemWorkspace({
               {walletBalance < 0 ? (
                 <button
                   onClick={() => router.push('/wallet')}
-                  className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3 uppercase tracking-wider"
+                  className="nb-btn nb-btn-danger w-full py-4 text-xl tracking-[0.2em] mb-4"
                 >
                   Honor Your Debt
                 </button>
@@ -469,14 +466,14 @@ export default function ProblemWorkspace({
                     }
                   }}
                   disabled={isStaking}
-                  className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(220,38,38,0.4)] mb-3"
+                  className="nb-btn nb-btn-primary w-full py-4 text-xl tracking-[0.1em] mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isStaking ? "Locking in..." : `Commit $${(stakeAmount / 100).toFixed(2)}`}
+                  {isStaking ? "LOCKING IN..." : `COMMIT $${(stakeAmount / 100).toFixed(2)}`}
                 </button>
               )}
               <button
                 onClick={() => router.push('/problems')}
-                className="text-slate-400 hover:text-white text-sm underline transition"
+                className="text-black font-black uppercase tracking-widest text-sm hover:bg-black hover:text-white px-2 py-1 border-2 border-transparent hover:border-black transition-colors"
               >
                 Cancel & Go Back
               </button>
@@ -488,23 +485,24 @@ export default function ProblemWorkspace({
         {!showWagerModal && (
           <>
             {/* ────────────────────── LEFT PANEL: Problem Description ────────────── */}
-            <div className="w-[45%] min-w-[320px] border-r border-white/10 flex flex-col overflow-hidden">
+            {/* ────────────────────── LEFT PANEL: Problem Description ────────────── */}
+            <div className="w-[45%] min-w-[320px] border-r-4 border-black flex flex-col overflow-hidden bg-white">
               {/* Tabs */}
-              <div className="flex items-center border-b border-white/10 bg-[#0b0f1e]/80">
+              <div className="flex items-center border-b-4 border-black bg-white">
                 <button
                   onClick={() => setActiveTab("description")}
-                  className={`px-4 py-2.5 text-sm font-medium transition ${activeTab === "description"
-                    ? "text-white border-b-2 border-indigo-400"
-                    : "text-slate-400 hover:text-slate-200"
+                  className={`px-4 py-3 text-sm font-black uppercase tracking-widest transition-colors ${activeTab === "description"
+                    ? "bg-[#ffcc00] text-black border-r-4 border-black shadow-[inset_-4px_-4px_0_0_rgba(0,0,0,0.1)]"
+                    : "text-black hover:bg-gray-100 border-r-4 border-black"
                     }`}
                 >
                   Description
                 </button>
                 <button
                   onClick={() => setActiveTab("submissions")}
-                  className={`px-4 py-2.5 text-sm font-medium transition ${activeTab === "submissions"
-                    ? "text-white border-b-2 border-indigo-400"
-                    : "text-slate-400 hover:text-slate-200"
+                  className={`px-4 py-3 text-sm font-black uppercase tracking-widest transition-colors ${activeTab === "submissions"
+                    ? "bg-[#00ff66] text-black border-r-4 border-black shadow-[inset_-4px_-4px_0_0_rgba(0,0,0,0.1)]"
+                    : "text-black hover:bg-gray-100 border-r-4 border-black"
                     }`}
                 >
                   Submissions
@@ -512,15 +510,15 @@ export default function ProblemWorkspace({
               </div>
 
               {/* Scrollable content */}
-              <div className={`flex-1 overflow-y-auto p-5 space-y-5 ${activeSession ? "select-none" : ""}`}>
+              <div className={`flex-1 overflow-y-auto p-6 space-y-6 ${activeSession ? "select-none" : ""}`}>
                 {activeTab === "description" ? (
                   <>
                     {/* Back link */}
                     <Link
                       href="/problems"
-                      className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-indigo-300 transition"
+                      className="inline-flex items-center gap-1.5 text-sm font-black uppercase tracking-widest text-black hover:bg-[#ff3333] hover:text-white px-2 py-1 border-2 border-transparent hover:border-black transition-colors w-max"
                     >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                       </svg>
                       All Problems
@@ -528,9 +526,9 @@ export default function ProblemWorkspace({
 
                     {/* Header */}
                     <div>
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <div className="flex flex-wrap items-center gap-2 mb-4">
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${difficultyStyles[problem.difficulty] ?? ""
+                          className={`inline-flex px-2 py-0.5 text-xs font-black uppercase tracking-widest ${difficultyStyles[problem.difficulty] ?? ""
                             }`}
                         >
                           {problem.difficulty}
@@ -538,34 +536,34 @@ export default function ProblemWorkspace({
                         {problem.topics?.map((topic: string) => (
                           <span
                             key={topic}
-                            className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-300 ring-1 ring-indigo-400/20"
+                            className="bg-black text-white px-2 py-0.5 text-xs font-black uppercase tracking-widest border-2 border-black shadow-[2px_2px_0_0_#000]"
                           >
                             {topic}
                           </span>
                         ))}
                       </div>
-                      <h1 className="text-2xl font-bold tracking-tight text-white">
+                      <h1 className="text-4xl font-black tracking-tighter text-black uppercase leading-none">
                         {problem.title}
                       </h1>
                     </div>
 
                     {/* Description */}
-                    <div className="rounded-xl border border-white/10 bg-[#080d1a]/60 p-4">
-                      <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                    <div className="bg-white border-4 border-black p-5 shadow-[4px_4px_0_0_#000]">
+                      <h2 className="text-sm font-black text-black uppercase tracking-widest mb-4 bg-[#ffcc00] inline-block px-2 border-2 border-black">
                         Description
                       </h2>
-                      <div className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+                      <div className="text-sm text-black font-bold leading-relaxed whitespace-pre-wrap">
                         {problem.description}
                       </div>
                     </div>
 
                     {/* Constraints */}
                     {problem.constraints && (
-                      <div className="rounded-xl border border-white/10 bg-[#080d1a]/60 p-4">
-                        <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                      <div className="bg-white border-4 border-black p-5 shadow-[4px_4px_0_0_#000]">
+                        <h2 className="text-sm font-black text-black uppercase tracking-widest mb-4 bg-[#ff3333] text-white inline-block px-2 border-2 border-black">
                           Constraints
                         </h2>
-                        <div className="text-sm text-slate-300 font-mono leading-relaxed whitespace-pre-wrap bg-[#060a16] rounded-lg p-3 border border-white/5">
+                        <div className="text-sm text-black font-mono font-bold leading-relaxed whitespace-pre-wrap bg-gray-100 p-3 border-2 border-black">
                           {problem.constraints}
                         </div>
                       </div>
@@ -573,34 +571,34 @@ export default function ProblemWorkspace({
 
                     {/* Example Test Cases */}
                     {exampleTestCases.length > 0 && (
-                      <div className="space-y-3">
-                        <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <div className="space-y-4">
+                        <h2 className="text-xl font-black text-black uppercase tracking-widest">
                           Examples
                         </h2>
                         {exampleTestCases.map((tc, i) => (
                           <div
                             key={tc.id}
-                            className="rounded-xl border border-white/10 bg-[#080d1a]/60 p-4 space-y-2"
+                            className="bg-white border-4 border-black p-5 space-y-4 shadow-[4px_4px_0_0_#000]"
                           >
-                            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            <h3 className="text-sm font-black text-black uppercase tracking-widest bg-[#00ff66] inline-block px-2 border-2 border-black">
                               Example {i + 1}
                             </h3>
                             <div>
-                              <span className="text-xs font-semibold text-slate-400 mb-1 block">Input:</span>
-                              <div className="bg-[#060a16] rounded-lg p-2.5 border border-white/5 font-mono text-sm text-emerald-300 whitespace-pre-wrap">
+                              <span className="text-xs font-black text-black uppercase tracking-widest mb-1 block">Input:</span>
+                              <div className="bg-black text-[#00ff66] p-3 border-4 border-black font-mono text-sm whitespace-pre-wrap shadow-[4px_4px_0_0_#ffcc00]">
                                 {tc.input}
                               </div>
                             </div>
                             <div>
-                              <span className="text-xs font-semibold text-slate-400 mb-1 block">Output:</span>
-                              <div className="bg-[#060a16] rounded-lg p-2.5 border border-white/5 font-mono text-sm text-blue-300 whitespace-pre-wrap">
+                              <span className="text-xs font-black text-black uppercase tracking-widest mb-1 block">Output:</span>
+                              <div className="bg-black text-[#ffcc00] p-3 border-4 border-black font-mono text-sm whitespace-pre-wrap shadow-[4px_4px_0_0_#00ff66]">
                                 {tc.output}
                               </div>
                             </div>
                             {tc.explanation && (
                               <div>
-                                <span className="text-xs font-semibold text-slate-400 mb-1 block">Explanation:</span>
-                                <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                <span className="text-xs font-black text-black uppercase tracking-widest mb-1 block">Explanation:</span>
+                                <div className="text-sm text-black font-bold leading-relaxed whitespace-pre-wrap bg-gray-100 p-3 border-2 border-black">
                                   {tc.explanation}
                                 </div>
                               </div>
@@ -612,50 +610,45 @@ export default function ProblemWorkspace({
                   </>
                 ) : (
                   /* Submissions tab */
-                  <div className="space-y-4">
-                    <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
+                  <div className="space-y-6">
+                    <h2 className="text-xl font-black text-black uppercase tracking-widest mb-4">
                       Past Submissions
                     </h2>
 
                     {isLoadingSubmissions ? (
                       <div className="flex justify-center py-8">
-                        <span className="h-5 w-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                        <span className="h-8 w-8 border-4 border-black border-t-transparent animate-spin" />
                       </div>
                     ) : submissions.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-48 text-slate-500">
-                        <svg className="w-12 h-12 mb-3 text-slate-600/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <p className="text-sm">No submissions yet.</p>
+                      <div className="flex flex-col items-center justify-center h-48 bg-gray-100 border-4 border-black shadow-[4px_4px_0_0_#000]">
+                        <p className="text-black font-black uppercase tracking-widest">No submissions yet.</p>
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         {submissions.map((sub) => {
                           const lang = LANGUAGES.find((l) => l.id === sub.language);
                           const isAccepted = sub.status === "accepted";
                           return (
                             <div
                               key={sub.id}
-                              className="flex flex-col rounded-xl border border-white/10 bg-[#080d1a]/60 p-4 transition hover:bg-white/[0.02]"
+                              className="flex flex-col bg-white border-4 border-black p-4 shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:translate-x-1 hover:shadow-[0_0_0_0_#000] transition-all"
                             >
-                              <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center justify-between mb-3">
                                 <span
-                                  className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${verdictStyle(sub.status)}`}
+                                  className={`inline-flex px-2 py-0.5 text-xs font-black uppercase tracking-widest ${verdictStyle(sub.status)}`}
                                 >
                                   {verdictLabel(sub.status)}
                                 </span>
-                                <span className="text-xs text-slate-500">
+                                <span className="text-xs font-bold text-black uppercase tracking-widest bg-gray-100 px-2 py-0.5 border-2 border-black">
                                   {new Date(sub.created_at).toLocaleDateString()} {new Date(sub.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-4 text-xs text-slate-400">
-                                <span className="flex items-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full bg-slate-600"></span>
+                              <div className="flex items-center gap-4 text-xs font-black text-black uppercase tracking-widest">
+                                <span className="flex items-center gap-1.5 bg-[#ffcc00] px-2 py-0.5 border-2 border-black">
                                   {lang ? lang.label : sub.language}
                                 </span>
-                                {/* We don't have accurate time/memory from Wandbox, but if we did, they'd show here */}
-                                {sub.runtime_ms !== null && <span>⏱️ {sub.runtime_ms}ms</span>}
-                                {sub.memory_kb !== null && <span>💾 {(sub.memory_kb / 1024).toFixed(1)}MB</span>}
+                                {sub.runtime_ms !== null && <span className="bg-black text-white px-2 py-0.5 border-2 border-black">⏱️ {sub.runtime_ms}ms</span>}
+                                {sub.memory_kb !== null && <span className="bg-black text-white px-2 py-0.5 border-2 border-black">💾 {(sub.memory_kb / 1024).toFixed(1)}MB</span>}
                               </div>
                             </div>
                           );
@@ -668,15 +661,15 @@ export default function ProblemWorkspace({
             </div>
 
             {/* ────────────────────── RIGHT PANEL: Editor + Results ─────────────── */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden bg-white">
               {/* Toolbar: Language selector + Run/Submit buttons */}
-              <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-[#0b0f1e]/80">
+              <div className="flex items-center justify-between px-6 py-3 border-b-4 border-black bg-white">
                 {/* Language picker */}
                 <select
                   id="language-select"
                   value={selectedLanguage}
                   onChange={(e) => handleLanguageChange(e.target.value)}
-                  className="rounded-lg border border-white/10 bg-[#080d1a] px-3 py-1.5 text-sm text-white focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/25 transition cursor-pointer"
+                  className="bg-[#00ff66] border-4 border-black px-4 py-2 text-black font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] cursor-pointer focus:outline-none focus:bg-[#ffcc00] transition-colors"
                 >
                   {LANGUAGES.map((lang) => (
                     <option key={lang.id} value={lang.id}>
@@ -686,25 +679,21 @@ export default function ProblemWorkspace({
                 </select>
 
                 {/* Action buttons */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
                   <button
                     id="btn-run"
                     onClick={handleRun}
                     disabled={isRunning || isSubmitting}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-1.5 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="nb-btn px-6 py-2 bg-[#ffcc00] text-black disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   >
                     {isRunning ? (
                       <>
-                        <span className="h-3.5 w-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                        Running…
+                        <span className="h-4 w-4 border-4 border-black border-t-transparent animate-spin inline-block align-middle mr-2" />
+                        RUNNING...
                       </>
                     ) : (
                       <>
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Run
+                        RUN
                       </>
                     )}
                   </button>
@@ -712,19 +701,16 @@ export default function ProblemWorkspace({
                     id="btn-submit"
                     onClick={handleSubmit}
                     disabled={isRunning || isSubmitting}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white shadow-lg shadow-emerald-900/30 transition hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="nb-btn px-6 py-2 bg-[#ff3333] text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   >
                     {isSubmitting ? (
                       <>
-                        <span className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Submitting…
+                        <span className="h-4 w-4 border-4 border-white border-t-transparent animate-spin inline-block align-middle mr-2" />
+                        SUBMITTING...
                       </>
                     ) : (
                       <>
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        Submit
+                        SUBMIT
                       </>
                     )}
                   </button>
@@ -732,7 +718,7 @@ export default function ProblemWorkspace({
               </div>
 
               {/* Monaco Editor */}
-              <div className="flex-1 overflow-hidden relative">
+              <div className="flex-1 overflow-hidden relative border-b-4 border-black">
                 <CodeEditor
                   language={currentLang.monacoLang}
                   value={code}
@@ -743,16 +729,16 @@ export default function ProblemWorkspace({
 
               {/* ────────── Results Panel (collapsible) ────────── */}
               {resultsPanelOpen && (
-                <div className="border-t border-white/10 bg-[#080d1a]/90 max-h-[40%] overflow-y-auto">
+                <div className="bg-white max-h-[40%] overflow-y-auto">
                   {/* Panel header */}
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  <div className="flex items-center justify-between px-6 py-3 border-b-4 border-black bg-[#ffcc00]">
+                    <div className="flex items-center gap-4">
+                      <span className="text-xl font-black text-black uppercase tracking-widest">
                         Results
                       </span>
                       {result && (
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${verdictStyle(result.verdict)}`}
+                          className={`inline-flex px-3 py-1 text-sm font-black uppercase tracking-widest ${verdictStyle(result.verdict)}`}
                         >
                           {verdictLabel(result.verdict)}
                         </span>
@@ -760,7 +746,7 @@ export default function ProblemWorkspace({
                     </div>
                     <button
                       onClick={() => setResultsPanelOpen(false)}
-                      className="text-slate-500 hover:text-white transition text-lg leading-none"
+                      className="text-black font-black uppercase text-2xl hover:bg-[#ff3333] hover:text-white px-2 py-1 border-2 border-transparent hover:border-black transition-colors"
                       aria-label="Close results"
                     >
                       ×
@@ -769,66 +755,66 @@ export default function ProblemWorkspace({
 
                   {/* Error message */}
                   {error && (
-                    <div className="mx-4 mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                    <div className="m-4 border-4 border-[#ff3333] bg-white p-4 text-black font-bold uppercase tracking-widest shadow-[4px_4px_0_0_#ff3333]">
                       {error}
                     </div>
                   )}
 
                   {/* Loading state */}
                   {(isRunning || isSubmitting) && !result && (
-                    <div className="flex items-center justify-center py-8 text-slate-400 text-sm gap-2">
-                      <span className="h-4 w-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                      {isRunning ? "Running against test cases…" : "Submitting…"}
+                    <div className="flex items-center justify-center py-12 text-black font-black uppercase tracking-widest gap-3">
+                      <span className="h-6 w-6 border-4 border-black border-t-transparent animate-spin" />
+                      {isRunning ? "Running against test cases..." : "Submitting..."}
                     </div>
                   )}
 
                   {/* Test case results */}
                   {result && (
-                    <div className="p-3 space-y-2">
+                    <div className="p-6 space-y-4 bg-gray-100">
                       {result.results.map((tc) => (
                         <details
                           key={tc.index}
-                          className="rounded-lg border border-white/5 bg-[#060a16]/60 overflow-hidden group"
+                          className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] overflow-hidden group"
                         >
-                          <summary className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-white/[0.02] transition">
-                            <div className="flex items-center gap-2">
-                              <span className={tc.passed ? "text-emerald-400" : "text-red-400"}>
+                          <summary className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-[#00ff66] transition-colors">
+                            <div className="flex items-center gap-3">
+                              <span className={tc.passed ? "text-[#00ff66] bg-black px-1 border-2 border-black" : "text-[#ff3333] bg-black px-1 border-2 border-black"}>
                                 {tc.passed ? "✅" : "❌"}
                               </span>
-                              <span className="text-sm text-slate-300">
+                              <span className="text-lg font-black text-black uppercase tracking-widest">
                                 Test Case {tc.index + 1}
                               </span>
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-500">
-                              {tc.time && <span>{tc.time}s</span>}
-                              {tc.memory && <span>{(tc.memory / 1024).toFixed(1)} MB</span>}
-                              <span className="text-[10px]">▼</span>
+                            <div className="flex items-center gap-4 text-sm font-black text-black uppercase tracking-widest">
+                              {tc.time && <span className="bg-white px-2 py-0.5 border-2 border-black">{tc.time}s</span>}
+                              {tc.memory && <span className="bg-white px-2 py-0.5 border-2 border-black">{(tc.memory / 1024).toFixed(1)} MB</span>}
+                              <span className="text-xl">▼</span>
                             </div>
                           </summary>
-                          <div className="px-3 pb-3 space-y-2 border-t border-white/5 pt-2">
+                          <div className="px-4 pb-4 space-y-4 border-t-4 border-black pt-4 bg-white">
                             <div>
-                              <span className="text-xs font-semibold text-slate-500 block mb-1">Input:</span>
-                              <pre className="bg-[#040810] rounded p-2 text-xs font-mono text-slate-300 whitespace-pre-wrap">
+                              <span className="text-sm font-black text-black uppercase tracking-widest block mb-2 bg-[#ffcc00] inline-block px-2 border-2 border-black">Input:</span>
+                              <pre className="bg-black text-[#00ff66] p-4 border-4 border-black font-mono text-sm whitespace-pre-wrap shadow-[4px_4px_0_0_#00ff66]">
                                 {tc.input}
                               </pre>
                             </div>
                             <div>
-                              <span className="text-xs font-semibold text-slate-500 block mb-1">Expected:</span>
-                              <pre className="bg-[#040810] rounded p-2 text-xs font-mono text-emerald-300 whitespace-pre-wrap">
+                              <span className="text-sm font-black text-black uppercase tracking-widest block mb-2 bg-[#ffcc00] inline-block px-2 border-2 border-black">Expected:</span>
+                              <pre className="bg-black text-[#00ff66] p-4 border-4 border-black font-mono text-sm whitespace-pre-wrap shadow-[4px_4px_0_0_#00ff66]">
                                 {tc.expectedOutput}
                               </pre>
                             </div>
                             <div>
-                              <span className="text-xs font-semibold text-slate-500 block mb-1">Your Output:</span>
-                              <pre className={`bg-[#040810] rounded p-2 text-xs font-mono whitespace-pre-wrap ${tc.passed ? "text-emerald-300" : "text-red-300"
+                              <span className="text-sm font-black text-black uppercase tracking-widest block mb-2 bg-[#ffcc00] inline-block px-2 border-2 border-black">Your Output:</span>
+                              <pre className={`bg-black p-4 border-4 border-black font-mono text-sm whitespace-pre-wrap shadow-[4px_4px_0_0_${tc.passed ? '#00ff66' : '#ff3333'}] ${tc.passed ? "text-[#00ff66]" : "text-[#ff3333]"
                                 }`}>
                                 {tc.actualOutput || "(no output)"}
                               </pre>
                             </div>
                             {tc.stderr && (
                               <div>
-                                <span className="text-xs font-semibold text-red-400 block mb-1">Stderr:</span>
-                                <pre className="bg-[#040810] rounded p-2 text-xs font-mono text-red-300 whitespace-pre-wrap">
+                                <span className="text-sm font-black text-white bg-[#ff3333] uppercase tracking-widest block mb-2 inline-block px-2 border-2 border-black">Stderr:</span>
+                                <pre className="bg-black text-[#ff3333] p-4 border-4 border-black font-mono text-sm whitespace-pre-wrap shadow-[4px_4px_0_0_#ff3333]">
                                   {tc.stderr}
                                 </pre>
                               </div>
@@ -839,10 +825,10 @@ export default function ProblemWorkspace({
 
                       {/* Summary */}
                       {result.totalTime !== null && (
-                        <div className="flex items-center gap-4 pt-2 text-xs text-slate-500">
-                          <span>Total: {result.totalTime}ms</span>
+                        <div className="flex items-center gap-6 pt-4 text-sm font-black text-black uppercase tracking-widest">
+                          <span className="bg-white border-4 border-black px-3 py-1 shadow-[4px_4px_0_0_#000]">Total: {result.totalTime}ms</span>
                           {result.totalMemory && (
-                            <span>Memory: {(result.totalMemory / 1024).toFixed(1)} MB</span>
+                            <span className="bg-white border-4 border-black px-3 py-1 shadow-[4px_4px_0_0_#000]">Memory: {(result.totalMemory / 1024).toFixed(1)} MB</span>
                           )}
                         </div>
                       )}
