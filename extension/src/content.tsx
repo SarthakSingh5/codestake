@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import type { UIState } from './types';
@@ -18,6 +18,16 @@ function CodeStakeOverlay() {
   const [timerEndMs, setTimerEndMs] = useState<number | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [popupMsg, setPopupMsg] = useState<{ type: 'win' | 'fail', text: string, score: number } | null>(null);
+
+  // Refs to avoid stale closures in event listeners
+  const activeSessionIdRef = useRef<string | null>(null);
+  const hasActiveContractRef = useRef<boolean>(false);
+  const userIdRef = useRef<string | null>(null);
+
+  // Keep refs in sync with state
+  useEffect(() => { activeSessionIdRef.current = activeSessionId; }, [activeSessionId]);
+  useEffect(() => { hasActiveContractRef.current = hasActiveContract; }, [hasActiveContract]);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
 
   // Initialize Auth
   useEffect(() => {
@@ -76,9 +86,13 @@ function CodeStakeOverlay() {
         chrome.runtime.sendMessage(
           { action: 'fetch_api', url: `http://localhost:3000/api/extension/contracts?userId=${userId}` },
           (contractRes) => {
-            if (contractRes?.data?.contract) {
+            console.log('[CodeStake] Contracts init response:', contractRes?.data);
+            if (contractRes?.data?.contracts && contractRes.data.contracts.length > 0) {
+              console.log('[CodeStake] Found active contracts:', contractRes.data.contracts.length);
               hasActiveChallenge = true;
               setHasActiveContract(true);
+            } else {
+              console.log('[CodeStake] No active contracts found on init.');
             }
 
             if (hasActiveChallenge) {
@@ -109,7 +123,7 @@ function CodeStakeOverlay() {
     return () => chrome.runtime.onMessage.removeListener(messageListener);
   }, [userId, activeSessionId]);
 
-  // Listen for Interceptor Verdicts (Win/Loss)
+  // Listen for Interceptor Verdicts (Win/Loss) — uses refs to avoid stale closures
   useEffect(() => {
     const handlePopup = (e: any) => {
       setPopupMsg(e.detail);
@@ -118,10 +132,14 @@ function CodeStakeOverlay() {
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'CODESTAKE_SUBMISSION_RESULT') {
-        if (!activeSessionId && !hasActiveContract) return;
-
         const verdict = event.data.verdict;
-        console.log("[CodeStake Content] Interceptor reported verdict:", verdict);
+        const currentSessionId = activeSessionIdRef.current;
+        const currentUserId = userIdRef.current;
+
+        console.log('[CodeStake Content] Interceptor reported verdict:', verdict, '| sessionId:', currentSessionId, '| userId:', currentUserId);
+
+        // Always send to backend if user is logged in — backend decides what to do
+        if (!currentUserId) return;
 
         chrome.runtime.sendMessage(
           {
@@ -130,11 +148,15 @@ function CodeStakeOverlay() {
             options: {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ userId, sessionId: activeSessionId, verdict: verdict })
+              body: JSON.stringify({ userId: currentUserId, sessionId: currentSessionId, verdict: verdict })
             }
           },
           (response) => {
-            if (!response?.ok) return;
+            console.log('[CodeStake Content] Resolve API response:', response);
+            if (!response?.ok) {
+              console.error('[CodeStake Content] Resolve API failed:', response?.error || response?.data);
+              return;
+            }
 
             const data = response.data;
             if (data.success) {
@@ -203,6 +225,7 @@ function CodeStakeOverlay() {
           setActiveSessionId={setActiveSessionId}
           setActiveSessionMode={setActiveSessionMode}
           setTimerEndMs={setTimerEndMs}
+          setHasActiveContract={setHasActiveContract}
         />
       )}
 
@@ -260,5 +283,4 @@ script.onload = () => {
 const root = document.createElement('div');
 root.id = 'codestake-extension-root';
 document.body.appendChild(root);
-createRoot(root).render(<CodeStakeOverlay />);
 createRoot(root).render(<CodeStakeOverlay />);

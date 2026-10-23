@@ -79,8 +79,8 @@ function FilterDropdown({
       <button
         onClick={() => setOpen(!open)}
         className={`inline-flex items-center gap-1.5 border-4 px-3 py-1.5 text-sm font-black uppercase tracking-widest transition cursor-pointer shadow-[4px_4px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] ${isActive
-            ? "border-black bg-[#ffcc00] text-black"
-            : "border-black bg-white text-black hover:bg-gray-200"
+          ? "border-black bg-[#ffcc00] text-black"
+          : "border-black bg-white text-black hover:bg-gray-200"
           }`}
       >
         {label}{isActive ? `: ${value}` : ""}
@@ -99,8 +99,8 @@ function FilterDropdown({
                 setOpen(false);
               }}
               className={`w-full text-left px-4 py-3 text-sm font-bold border-b-2 border-black last:border-b-0 transition uppercase ${value === option
-                  ? "bg-[#ffcc00] text-black"
-                  : "text-black hover:bg-gray-100"
+                ? "bg-[#ffcc00] text-black"
+                : "text-black hover:bg-gray-100"
                 }`}
             >
               {option}
@@ -150,8 +150,8 @@ function TopicDropdown({
       <button
         onClick={() => setOpen(!open)}
         className={`inline-flex items-center gap-1.5 border-4 px-3 py-1.5 text-sm font-black uppercase tracking-widest transition cursor-pointer shadow-[4px_4px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] ${isActive
-            ? "border-black bg-[#ffcc00] text-black"
-            : "border-black bg-white text-black hover:bg-gray-200"
+          ? "border-black bg-[#ffcc00] text-black"
+          : "border-black bg-white text-black hover:bg-gray-200"
           }`}
       >
         Topics{isActive ? ` (${selected.length})` : ""}
@@ -173,8 +173,8 @@ function TopicDropdown({
               >
                 <span
                   className={`flex items-center justify-center w-5 h-5 border-2 border-black transition ${selected.includes(topic)
-                      ? "bg-[#00ff66]"
-                      : "bg-white"
+                    ? "bg-[#00ff66]"
+                    : "bg-white"
                     }`}
                 >
                   {selected.includes(topic) && (

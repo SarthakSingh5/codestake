@@ -18,9 +18,9 @@ export default async function Home() {
   return (
     <div className="min-h-screen flex flex-col items-center px-4 relative font-sans overflow-hidden">
       {/* Navbar will be rendered via layout or top level, assuming it's separate. If not, this is just the hero. */}
-      
+
       <div className="relative w-full max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12 lg:gap-16 z-10 py-20 md:py-32">
-        
+
         {/* Left column: Copy & CTA */}
         <div className="flex-1 text-center md:text-left flex flex-col items-center md:items-start z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 border-4 border-black bg-[#ffcc00] text-black text-sm font-black uppercase tracking-widest mb-6 shadow-[4px_4px_0_0_#000]">

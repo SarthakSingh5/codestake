@@ -65,9 +65,9 @@ export async function GET(request: Request) {
             // SUCCESS: Met the quota for the day/gauntlet
             if (contract.mode === 'blood_pact') {
               if (contract.current_day < contract.target_days) {
-                // Advance to next day
-                const nextExpiresAt = new Date(expiresAt);
-                nextExpiresAt.setHours(nextExpiresAt.getHours() + 24);
+                // Advance to next day (FOR TESTING: just +1 min from now)
+                const nextExpiresAt = new Date();
+                nextExpiresAt.setMinutes(nextExpiresAt.getMinutes() + 1);
                 
                 const { data: updatedContract } = await supabase.from('challenge_contracts')
                   .update({
@@ -135,8 +135,8 @@ export async function POST(request: Request) {
     let expiresAt = new Date();
     
     if (mode === 'blood_pact') {
-      // Expires at midnight tonight local time (simplest approach: just +24h for now)
-      expiresAt.setHours(expiresAt.getHours() + 24);
+      // FOR TESTING: Expires in 1 minute
+      expiresAt.setMinutes(expiresAt.getMinutes() + 1);
     } else if (mode === 'gauntlet') {
       const durationMinutes = body.durationMinutes || 180;
       expiresAt.setMinutes(expiresAt.getMinutes() + durationMinutes);

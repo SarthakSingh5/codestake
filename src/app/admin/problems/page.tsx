@@ -159,8 +159,8 @@ export default async function AdminProblemsPage() {
                     <button
                       type="submit"
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 transition hover:opacity-80 ${problem.is_published
-                          ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20"
-                          : "bg-slate-500/15 text-slate-400 ring-slate-400/20"
+                        ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20"
+                        : "bg-slate-500/15 text-slate-400 ring-slate-400/20"
                         }`}
                       title={problem.is_published ? "Click to unpublish" : "Click to publish"}
                     >

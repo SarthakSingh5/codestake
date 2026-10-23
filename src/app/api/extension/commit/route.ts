@@ -108,7 +108,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to create stake session: " + error.message }, { status: 500, headers: corsHeaders });
     }
 
-    revalidatePath(`/problems/${problemId}`); // Still use the slug here for revalidatePath if the route is /problems/[slug]
+    // Temporarily disabled revalidatePath because it blocks the response for 12+ seconds in dev mode, causing the extension to time out.
+    // revalidatePath(`/problems/${problemId}`); 
+    
     return NextResponse.json({ success: true, session: newSession }, { status: 200, headers: corsHeaders });
   } catch (err: any) {
     console.error("Extension Commit Error:", err.message);

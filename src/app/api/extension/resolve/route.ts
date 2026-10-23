@@ -78,11 +78,33 @@ export async function POST(request: Request) {
 
           for (const contract of contracts) {
             if (new Date(contract.expires_at) < new Date()) {
-              // Timezone/Late Exploit Blocked: Timer expired before this submission.
-              await adminClient.rpc('incur_debt', { p_user_id: userId, p_amount: contract.penalty_cents });
-              await adminClient.from("challenge_contracts").update({ status: 'failed' }).eq("id", contract.id);
-              expiredCount++;
-              continue; // Skip incrementing this one
+              if (contract.problems_solved_today < contract.target_problems_per_day) {
+                // Timezone/Late Exploit Blocked: Timer expired before quota was met
+                await adminClient.rpc('incur_debt', { p_user_id: userId, p_amount: contract.penalty_cents });
+                await adminClient.from("challenge_contracts").update({ status: 'failed' }).eq("id", contract.id);
+                expiredCount++;
+                continue; // Skip incrementing this one
+              } else {
+                // Quota WAS met for previous day! Advance to next day.
+                if (contract.mode === 'blood_pact') {
+                  if (contract.current_day < contract.target_days) {
+                    const nextExpiresAt = new Date();
+                    nextExpiresAt.setMinutes(nextExpiresAt.getMinutes() + 1); // for testing: +1 min
+                    await adminClient.from("challenge_contracts").update({
+                      current_day: contract.current_day + 1,
+                      problems_solved_today: 0,
+                      expires_at: nextExpiresAt.toISOString()
+                    }).eq("id", contract.id);
+                    contract.current_day += 1;
+                    contract.problems_solved_today = 0;
+                    contract.expires_at = nextExpiresAt.toISOString();
+                  } else {
+                    await adminClient.from("challenge_contracts").update({ status: 'completed' }).eq("id", contract.id);
+                    contract.status = 'completed';
+                    continue;
+                  }
+                }
+              }
             }
 
             const newSolvedToday = contract.problems_solved_today + 1;
@@ -90,6 +112,8 @@ export async function POST(request: Request) {
             
             let newStatus = contract.status;
             if (contract.mode === 'gauntlet' && newTotalSolved >= contract.target_problems_per_day) {
+              newStatus = 'completed';
+            } else if (contract.mode === 'blood_pact' && contract.current_day >= contract.target_days && newSolvedToday >= contract.target_problems_per_day) {
               newStatus = 'completed';
             }
 

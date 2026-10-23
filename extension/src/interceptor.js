@@ -42,11 +42,10 @@ window.fetch = async function (...args) {
 
       // state is "PENDING" or "STARTED" while running, then "SUCCESS" when finished
       if (data.state === "SUCCESS") {
-        
-        // A "Run" uses task_name "judger.runcode.celery_task_new"
-        // A "Submit" uses task_name "judger.judgetask.celery_task_new"
-        const isSubmitTask = data.task_name && data.task_name.includes('judgetask');
+        const isSubmitTask = data.task_name && data.task_name.toLowerCase().includes('judge');
         const isMatchedId = submissionId && validSubmitIds.has(submissionId);
+
+        console.log('[CodeStake] /check/ SUCCESS — task_name:', data.task_name, '| submissionId:', submissionId, '| validSubmitIds:', [...validSubmitIds], '| isSubmitTask:', isSubmitTask, '| isMatchedId:', isMatchedId, '| status_msg:', data.status_msg);
 
         // Only evaluate win/loss if this was a REAL submit, not just a "Run"
         if (isSubmitTask || isMatchedId) {
@@ -54,6 +53,8 @@ window.fetch = async function (...args) {
 
           // e.g., "Accepted", "Wrong Answer", "Runtime Error", "Time Limit Exceeded"
           const verdict = data.status_msg;
+
+          console.log('[CodeStake] Firing verdict postMessage:', verdict);
 
           // Broadcast the result securely to our Content Script
           window.postMessage({

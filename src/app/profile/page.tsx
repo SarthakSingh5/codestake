@@ -44,12 +44,12 @@ export default async function ProfilePage() {
   // Tier 4 & 5: Smooth, powerful glow, slow pulse
   let orbClass = "rounded-full ";
   let pulseClass = "";
-  
+
   if (score < 0) {
     // The Broken / The Slipping
     orbClass += "bg-red-500/20 shadow-[0_0_100px_rgba(220,38,38,0.6)] ";
     // Add jagged/shattered effect via clip-path if we wanted, but we'll stick to intense blur & pulsing for now.
-    pulseClass = "animate-pulse duration-75"; 
+    pulseClass = "animate-pulse duration-75";
   } else if (score === 0) {
     // The Bound
     orbClass += "bg-slate-500/10 shadow-[0_0_60px_rgba(148,163,184,0.3)] ";
@@ -63,13 +63,13 @@ export default async function ProfilePage() {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Navbar />
-      
+
       <div className="relative flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-4 flex-1 py-16">
-        
+
         {/* Persona Score Box */}
         <div className={`nb-box p-12 text-center mb-12 border-8 border-black shadow-[12px_12px_0_0_#000] relative rotate-1 
           ${score < 0 ? 'bg-[#ff3333]' : score === 0 ? 'bg-[#f0f0f0]' : 'bg-[#00ff66]'}`}>
-          
+
           <div className="absolute -top-6 -left-6 bg-black text-white font-black uppercase text-xl px-4 py-2 border-4 border-black shadow-[4px_4px_0_0_#fff]">
             Persona Score
           </div>

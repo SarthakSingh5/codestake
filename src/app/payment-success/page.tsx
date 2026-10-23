@@ -21,7 +21,7 @@ export default function PaymentSuccessPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        
+
         <h1 className="text-2xl font-bold text-white mb-2 tracking-wide uppercase">Debt Cleared</h1>
         <p className="text-slate-400 mb-8 text-sm">
           Your payment was successful. The pact has been restored. You may now close this tab and return to the arena.

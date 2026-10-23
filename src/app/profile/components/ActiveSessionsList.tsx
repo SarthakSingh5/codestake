@@ -56,8 +56,8 @@ export default function ActiveSessionsList({ sessions }: { sessions: Session[] }
               key={platform}
               onClick={() => setPlatformFilter(platform)}
               className={`px-3 py-1.5 text-xs font-black uppercase tracking-widest border-2 transition ${platformFilter === platform
-                  ? "bg-black border-black text-white shadow-[2px_2px_0_0_#000]"
-                  : "bg-white border-black text-black hover:bg-[#ffcc00] shadow-[2px_2px_0_0_#000]"
+                ? "bg-black border-black text-white shadow-[2px_2px_0_0_#000]"
+                : "bg-white border-black text-black hover:bg-[#ffcc00] shadow-[2px_2px_0_0_#000]"
                 }`}
             >
               {platform === "all" ? "All Platforms" : platform}

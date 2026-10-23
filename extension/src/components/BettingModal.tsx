@@ -9,11 +9,12 @@ interface Props {
   setActiveSessionId: (id: string | null) => void;
   setActiveSessionMode: (mode: string) => void;
   setTimerEndMs: (ms: number | null) => void;
+  setHasActiveContract: (has: boolean) => void;
 }
 
 type DashboardView = 'active_sessions' | 'main' | 'quick_play' | 'blood_pact' | 'gauntlet';
 
-export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, setActiveSessionMode, setTimerEndMs }: Props) {
+export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, setActiveSessionMode, setTimerEndMs, setHasActiveContract }: Props) {
   const [view, setView] = useState<DashboardView>('main');
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
 
@@ -202,7 +203,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
       <div className="fixed inset-0 z-[99999] bg-white/90 backdrop-blur-sm flex items-center justify-center font-sans p-4">
         <div className="nb-box p-8 max-w-md w-full text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
           <div className="absolute top-0 left-0 w-full h-2 bg-[#ff3333] border-b-4 border-black" />
-          
+
           {checkoutMode !== 'none' && (
             <button
               onClick={() => setCheckoutMode('none')}
@@ -295,6 +296,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
         setIsCommitting(false);
         if (res?.data?.contract) {
           setActiveContracts(prev => [...prev, res.data.contract]);
+          setHasActiveContract(true);
           setView('main');
         } else {
           alert("Error creating contract.");

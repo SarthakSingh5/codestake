@@ -82,7 +82,7 @@ export default async function WalletPage() {
                   </>
                 )}
               </div>
-              
+
               {balance < 0 ? (
                 <>
                   <DepositModal debtAmountCents={Math.abs(balance)} />
@@ -129,7 +129,7 @@ export default async function WalletPage() {
             <div className="px-6 py-4 border-b-4 border-black bg-black text-white">
               <h3 className="text-xl font-black uppercase tracking-widest">Transaction History</h3>
             </div>
-            
+
             {!transactions || transactions.length === 0 ? (
               <div className="p-8 text-center text-black font-bold uppercase tracking-widest">
                 No transactions yet.
