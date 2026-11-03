@@ -17,11 +17,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
     }
 
-    // Pass the fee to the user.
-    // Stripe USA standard fee is 2.9% + 30 cents.
-    // To get exactly `amountCents`, we charge `(amountCents + 30) / (1 - 0.029)`.
-    const multiplier = 1 / (1 - 0.029);
-    const finalAmountCents = Math.ceil((amountCents + 30) * multiplier);
+    // Exact debt amount: user pays 100% of debt, no extra fees added
+    const finalAmountCents = Math.max(50, amountCents);
 
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });

@@ -31,9 +31,8 @@ export async function POST(req: Request) {
     const usdToInrRate = 84; 
     const baseInrPaise = amountCents * usdToInrRate;
 
-    // Razorpay India standard domestic fee is 2% + 18% GST on the fee = 2.36%.
-    const multiplier = 1 / (1 - 0.0236);
-    const finalAmountCents = Math.ceil(baseInrPaise * multiplier);
+    // Exact debt amount: user pays 100% of debt, no extra fees added
+    const finalAmountCents = baseInrPaise;
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       return NextResponse.json({ error: 'Razorpay not configured on server' }, { status: 500, headers: corsHeaders });

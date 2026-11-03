@@ -28,7 +28,7 @@ window.fetch = async function (...args) {
           validSubmitIds.add(data.submission_id.toString());
           console.log("[CodeStake] Captured Submit ID:", data.submission_id);
         }
-      } catch(e) {
+      } catch (e) {
         // Silently ignore non-JSON /submit/ endpoints
       }
     }
@@ -36,31 +36,41 @@ window.fetch = async function (...args) {
     // 2. Poll for the result of the submission
     if (url && url.includes('/submissions/detail/') && url.includes('/check/')) {
       const match = url.match(/\/submissions\/detail\/(\d+)\/check/);
-      const submissionId = match ? match[1] : null;
+      const submissionId = match ? match[1].toString() : null;
 
       const data = await clone.json();
 
       // state is "PENDING" or "STARTED" while running, then "SUCCESS" when finished
       if (data.state === "SUCCESS") {
-        const isSubmitTask = data.task_name && data.task_name.toLowerCase().includes('judge');
-        const isMatchedId = submissionId && validSubmitIds.has(submissionId);
+        const taskName = (data.task_name || '').toLowerCase();
 
-        console.log('[CodeStake] /check/ SUCCESS — task_name:', data.task_name, '| submissionId:', submissionId, '| validSubmitIds:', [...validSubmitIds], '| isSubmitTask:', isSubmitTask, '| isMatchedId:', isMatchedId, '| status_msg:', data.status_msg);
+        // A "Run" uses task_name like "judger.runcode..." or contains "test" or "interpret"
+        // A "Submit" uses task_name like "judger.judgetask..." or contains "submit"
+        const isRunTask = taskName.includes('runcode') || taskName.includes('.test.') || taskName.includes('test') || taskName.includes('interpret');
+        const isSubmitTask = taskName.includes('judgetask') || taskName.includes('.submit.') || taskName.includes('submit');
+        const isMatchedId = submissionId ? validSubmitIds.has(submissionId) : false;
 
-        // Only evaluate win/loss if this was a REAL submit, not just a "Run"
-        if (isSubmitTask || isMatchedId) {
+        console.log('[CodeStake] /check/ SUCCESS — task_name:', data.task_name, '| submissionId:', submissionId, '| validSubmitIds:', [...validSubmitIds], '| isMatchedId:', isMatchedId, '| isRunTask:', isRunTask, '| isSubmitTask:', isSubmitTask, '| status_msg:', data.status_msg);
+
+        // Strict verification: MUST be a real submit, NEVER a run/interpret task
+        if (!isRunTask && (isMatchedId || isSubmitTask)) {
           if (submissionId) validSubmitIds.delete(submissionId); // clean up memory
 
           // e.g., "Accepted", "Wrong Answer", "Runtime Error", "Time Limit Exceeded"
           const verdict = data.status_msg;
 
-          console.log('[CodeStake] Firing verdict postMessage:', verdict);
+          console.log('[CodeStake] Firing verdict postMessage for REAL submit:', verdict);
+
+          const currentSlug = window.location.pathname.startsWith('/problems/') ? window.location.pathname.split('/')[2] : null;
 
           // Broadcast the result securely to our Content Script
           window.postMessage({
             type: 'CODESTAKE_SUBMISSION_RESULT',
-            verdict: verdict
+            verdict: verdict,
+            problemSlug: currentSlug
           }, '*');
+        } else {
+          console.log('[CodeStake] Ignored Run Code /check/ result.');
         }
       }
     }
@@ -73,68 +83,98 @@ window.fetch = async function (...args) {
   return response;
 };
 
-window.addEventListener('message', async (event) => {
-  if (event.data && event.data.type === 'CODESTAKE_CLEAR_EDITOR') {
-    try {
-      if (!window.monaco || !window.monaco.editor) {
-        console.log("[CodeStake] Monaco not found.");
-        return;
-      }
+let isResettingBoilerplate = false;
 
-      const models = window.monaco.editor.getModels();
-      const mainModel = models.find(m => m.uri && m.uri.toString().includes("main")) || models[0];
-      
-      if (!mainModel) return;
+async function resetMonacoBoilerplate(targetSlug, attempt = 0) {
+  const isProblemPage = window.location.pathname.startsWith('/problems/');
+  const currentSlug = targetSlug || (isProblemPage ? window.location.pathname.split('/')[2] : null);
 
-      const langId = mainModel.getLanguageId(); // e.g. "python", "cpp", "java", "javascript"
-      const slug = window.location.pathname.split('/')[2];
-      
-      if (!slug) return;
+  if (!currentSlug) return;
 
-      console.log(`[CodeStake] Fetching boilerplate for ${slug} in ${langId}...`);
+  // 1. Wait for Monaco Editor & Models to initialize
+  if (!window.monaco || !window.monaco.editor || window.monaco.editor.getModels().length === 0) {
+    if (attempt < 25) {
+      setTimeout(() => resetMonacoBoilerplate(currentSlug, attempt + 1), 400);
+    }
+    return;
+  }
 
-      // Fetch the exact official boilerplate directly from LeetCode's GraphQL API
-      const query = `
-        query questionEditorData($titleSlug: String!) {
-          question(titleSlug: $titleSlug) {
-            codeSnippets {
-              lang
-              langSlug
-              code
-            }
+  const models = window.monaco.editor.getModels();
+  const mainModel = models.find(m => m.uri && m.uri.toString().includes("main")) || models[0];
+
+  if (!mainModel) return;
+
+  const langId = mainModel.getLanguageId(); // e.g. "python", "cpp", "java", "javascript"
+
+  try {
+    isResettingBoilerplate = true;
+    console.log(`[CodeStake] Fetching official boilerplate for ${currentSlug} in ${langId}...`);
+
+    const query = `
+      query questionEditorData($titleSlug: String!) {
+        question(titleSlug: $titleSlug) {
+          codeSnippets {
+            lang
+            langSlug
+            code
           }
         }
-      `;
-      
-      const response = await fetch('/graphql', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: query,
-          variables: { titleSlug: slug }
-        })
-      });
-      
-      const json = await response.json();
-      const snippets = json?.data?.question?.codeSnippets || [];
-      
-      // Find the snippet that matches the current Monaco language
-      const matchedSnippet = snippets.find(s => 
-        s.langSlug === langId || 
-        s.lang.toLowerCase() === langId ||
-        (langId.includes('python') && s.langSlug.includes('python'))
-      );
-      
-      if (matchedSnippet) {
-        mainModel.setValue(matchedSnippet.code);
-        console.log("[CodeStake] Editor flawlessly reset to official boilerplate via GraphQL.");
-      } else {
-        // Fallback if language matching fails
-        mainModel.setValue('// Code wiped by CodeStake. Boilerplate not found.');
       }
-    } catch (e) {
-      console.error("[CodeStake] Failed to fetch boilerplate:", e);
-    }
+    `;
+
+    const response = await originalFetch('/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: query,
+        variables: { titleSlug: currentSlug }
+      })
+    });
+
+    const json = await response.json();
+    const snippets = json?.data?.question?.codeSnippets || [];
+
+    const matchedSnippet = snippets.find(s =>
+      s.langSlug === langId ||
+      s.lang.toLowerCase() === langId ||
+      (langId.includes('python') && s.langSlug.includes('python'))
+    );
+
+    const boilerplate = matchedSnippet ? matchedSnippet.code : '// Code reset by CodeStake Anti-Cheat.';
+
+    // Set clean boilerplate
+    mainModel.setValue(boilerplate);
+    console.log("[CodeStake] Editor reset to official boilerplate via GraphQL.");
+
+    // LeetCode Draft Restore Shield:
+    // LeetCode's client often asynchronously restores old code drafts ~500-1500ms after Monaco mounts.
+    // If LeetCode overrides our clean boilerplate with a previously saved solution, re-apply boilerplate!
+    let draftsBlocked = 0;
+    const disposable = mainModel.onDidChangeContent(() => {
+      if (isResettingBoilerplate) return;
+      const currentVal = mainModel.getValue();
+      // If code changed abruptly to something much longer than boilerplate (draft auto-restore)
+      if (draftsBlocked < 2 && currentVal && currentVal !== boilerplate && currentVal.length > boilerplate.length + 30) {
+        draftsBlocked++;
+        console.warn("[CodeStake] Blocked LeetCode auto-draft restore. Enforcing clean boilerplate.");
+        mainModel.setValue(boilerplate);
+      }
+    });
+
+    setTimeout(() => {
+      isResettingBoilerplate = false;
+      disposable.dispose();
+    }, 3000);
+
+  } catch (e) {
+    isResettingBoilerplate = false;
+    console.error("[CodeStake] Failed to fetch boilerplate:", e);
+  }
+}
+
+window.addEventListener('message', async (event) => {
+  if (event.data && (event.data.type === 'CODESTAKE_CLEAR_EDITOR' || event.data.type === 'CODESTAKE_ENFORCE_BOILERPLATE')) {
+    resetMonacoBoilerplate(event.data.problemSlug);
   }
 });
 

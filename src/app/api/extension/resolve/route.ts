@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
-import { internalResolveStakeWin, internalFailStakeSession } from "@/lib/internalStake";
+import { internalResolveStakeWin, internalFailStakeSession, internalResolveContracts } from "@/lib/internalStake";
+
+export const dynamic = 'force-dynamic';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,7 +17,7 @@ export async function OPTIONS() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, sessionId, verdict } = body;
+    const { userId, sessionId, verdict, problemSlug } = body;
 
     if (!userId || !verdict) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
@@ -23,9 +25,95 @@ export async function POST(request: Request) {
 
     const adminClient = createSupabaseAdminClient();
 
-    // 1. Determine if this is a Quick Play session or a Challenge Contract
+    // ── CASE 1: EXPIRED TRIGGER ──────────────────────────────────────────────
+    if (verdict === "EXPIRED") {
+      if (sessionId) {
+        const { data: session } = await adminClient.from('stake_sessions').select('*').eq('id', sessionId).single();
+        await internalFailStakeSession(sessionId);
+        const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
+        if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
+        return NextResponse.json({
+          success: true,
+          resolvedAs: "lost_expired",
+          title: "DEFEAT",
+          text: "Timer Expired. Stake Lost.",
+          items: [{ type: 'defeat', text: `Time Expired: $${session ? (session.amount_cents / 100).toFixed(2) : '5.00'} debt incurred` }],
+          personaScore: (w?.persona_score || 0) - 10
+        }, { headers: corsHeaders });
+      }
+      return NextResponse.json({ success: true, resolvedAs: "lost_expired", title: "DEFEAT", text: "Timer Expired. Stake Lost." }, { headers: corsHeaders });
+    }
+
+    // ── CASE 2: NON-ACCEPTED VERDICT (Wrong Answer, TLE, etc.) ───────────────
+    if (verdict !== "Accepted") {
+      if (sessionId) {
+        const { data: session } = await adminClient
+          .from("stake_sessions")
+          .select("*")
+          .eq("id", sessionId)
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .single();
+
+        if (session && session.mode === "one_shot") {
+          await internalFailStakeSession(session.id);
+          const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
+          if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
+          return NextResponse.json({
+            success: true,
+            resolvedAs: "lost_one_shot",
+            title: "DEFEAT",
+            text: "Wrong Answer. One-Shot Stake Lost.",
+            items: [{ type: 'defeat', text: `One-Shot Stake Lost: $${(session.amount_cents / 100).toFixed(2)} debt incurred` }],
+            personaScore: (w?.persona_score || 0) - 10
+          }, { headers: corsHeaders });
+        }
+      }
+      // If time_crunch or no session, just continue silently (do not interrupt user)
+      return NextResponse.json({ success: true, resolvedAs: "none" }, { headers: corsHeaders });
+    }
+
+    // ── CASE 3: ACCEPTED (REAL SUBMIT PASSED) ─────────────────────────────────
+    // An accepted submit MUST:
+    // 1. Resolve active Quick Play session (if one exists for this problem)
+    // 2. Add +1 to EVERY active Challenge Contract (Blood Pact, Gauntlet, etc.) running for this user,
+    //    with strict anti-cheat deduplication!
+
+    // Resolve or auto-import the problem ID
+    let currentProblemId: string | null = null;
+    if (problemSlug) {
+      const formattedTitle = problemSlug
+        .split('-')
+        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+
+      const { data: p } = await adminClient
+        .from('problems')
+        .upsert({
+          slug: problemSlug,
+          title: formattedTitle,
+          platform: 'leetcode',
+          description: 'External problem imported from LeetCode.'
+        }, { onConflict: 'platform,slug' })
+        .select('id')
+        .single();
+
+      if (p) currentProblemId = p.id;
+    } else if (sessionId) {
+      const { data: s } = await adminClient
+        .from('stake_sessions')
+        .select('problem_id')
+        .eq('id', sessionId)
+        .single();
+      if (s) currentProblemId = s.problem_id;
+    }
+
+    let quickPlayWon = false;
+    let quickPlayBonus = 0;
+    let activeSessionData: any = null;
+
+    // 1. Evaluate Quick Play session
     if (sessionId) {
-      // --- QUICK PLAY SESSION LOGIC ---
       const { data: session } = await adminClient
         .from("stake_sessions")
         .select("*")
@@ -34,138 +122,93 @@ export async function POST(request: Request) {
         .eq("status", "active")
         .single();
 
-      if (!session) {
-        return NextResponse.json({ error: "Session not found or already resolved" }, { status: 404, headers: corsHeaders });
-      }
-
-      if (verdict === "EXPIRED" || (session.expires_at && new Date(session.expires_at) < new Date())) {
-         await internalFailStakeSession(session.id);
-         const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
-         if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
-         return NextResponse.json({ success: true, resolvedAs: "lost_expired", personaScore: (w?.persona_score || 0) - 10 }, { headers: corsHeaders });
-      }
-
-      if (verdict === "Accepted") {
-        await internalResolveStakeWin(session.id);
-        const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
-        if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) + 5 }).eq('user_id', userId);
-        return NextResponse.json({ success: true, resolvedAs: "won", personaScore: (w?.persona_score || 0) + 5 }, { headers: corsHeaders });
-      } else {
-        if (session.mode === "one_shot") {
+      if (session) {
+        activeSessionData = session;
+        if (session.expires_at && new Date(session.expires_at) < new Date()) {
+          // Time expired before submission
           await internalFailStakeSession(session.id);
-          const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
-          if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
-          return NextResponse.json({ success: true, resolvedAs: "lost_one_shot", personaScore: (w?.persona_score || 0) - 10 }, { headers: corsHeaders });
         } else {
-          return NextResponse.json({ success: true, resolvedAs: "continue" }, { headers: corsHeaders });
+          await internalResolveStakeWin(session.id);
+          quickPlayWon = true;
+          quickPlayBonus = 5;
         }
       }
-    } else {
-      // --- MACRO STAKE (CONTRACT) LOGIC ---
-      if (verdict === "Accepted") {
-        // Fetch ALL active contracts
-        const { data: contracts } = await adminClient
-          .from("challenge_contracts")
-          .select("*")
-          .eq("user_id", userId)
-          .eq("status", "active");
-
-        if (contracts && contracts.length > 0) {
-          let highestResolvedAs = 'contract_progress';
-          let totalPersonaScoreAdded = 0;
-          let expiredCount = 0;
-          let w = null;
-
-          for (const contract of contracts) {
-            if (new Date(contract.expires_at) < new Date()) {
-              if (contract.problems_solved_today < contract.target_problems_per_day) {
-                // Timezone/Late Exploit Blocked: Timer expired before quota was met
-                await adminClient.rpc('incur_debt', { p_user_id: userId, p_amount: contract.penalty_cents });
-                await adminClient.from("challenge_contracts").update({ status: 'failed' }).eq("id", contract.id);
-                expiredCount++;
-                continue; // Skip incrementing this one
-              } else {
-                // Quota WAS met for previous day! Advance to next day.
-                if (contract.mode === 'blood_pact') {
-                  if (contract.current_day < contract.target_days) {
-                    const nextExpiresAt = new Date();
-                    nextExpiresAt.setMinutes(nextExpiresAt.getMinutes() + 1); // for testing: +1 min
-                    await adminClient.from("challenge_contracts").update({
-                      current_day: contract.current_day + 1,
-                      problems_solved_today: 0,
-                      expires_at: nextExpiresAt.toISOString()
-                    }).eq("id", contract.id);
-                    contract.current_day += 1;
-                    contract.problems_solved_today = 0;
-                    contract.expires_at = nextExpiresAt.toISOString();
-                  } else {
-                    await adminClient.from("challenge_contracts").update({ status: 'completed' }).eq("id", contract.id);
-                    contract.status = 'completed';
-                    continue;
-                  }
-                }
-              }
-            }
-
-            const newSolvedToday = contract.problems_solved_today + 1;
-            const newTotalSolved = contract.total_problems_solved + 1;
-            
-            let newStatus = contract.status;
-            if (contract.mode === 'gauntlet' && newTotalSolved >= contract.target_problems_per_day) {
-              newStatus = 'completed';
-            } else if (contract.mode === 'blood_pact' && contract.current_day >= contract.target_days && newSolvedToday >= contract.target_problems_per_day) {
-              newStatus = 'completed';
-            }
-
-            // Increment problems solved today
-            await adminClient
-              .from("challenge_contracts")
-              .update({ 
-                problems_solved_today: newSolvedToday,
-                total_problems_solved: newTotalSolved,
-                status: newStatus,
-                last_updated_at: new Date().toISOString()
-              })
-              .eq("id", contract.id);
-
-            // Persona score bonus for making progress (5 per contract)
-            totalPersonaScoreAdded += 5;
-
-            let resolvedAs = 'contract_progress';
-            if (newStatus === 'completed') {
-              resolvedAs = 'contract_completed';
-            } else if (contract.mode === 'blood_pact' && newSolvedToday >= contract.target_problems_per_day) {
-              resolvedAs = 'daily_quota_met';
-            }
-
-            // Prioritize higher statuses to show in UI
-            if (resolvedAs === 'contract_completed') {
-              highestResolvedAs = 'contract_completed';
-            } else if (resolvedAs === 'daily_quota_met' && highestResolvedAs !== 'contract_completed') {
-              highestResolvedAs = 'daily_quota_met';
-            }
-          }
-
-          if (expiredCount > 0) {
-            const { data: walletData } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
-            if (walletData) await adminClient.from('wallets').update({ persona_score: (walletData.persona_score || 0) - (10 * expiredCount) }).eq('user_id', userId);
-            // If ALL were expired, return lost_expired
-            if (expiredCount === contracts.length) {
-              return NextResponse.json({ success: true, resolvedAs: "lost_expired", personaScore: (walletData?.persona_score || 0) - (10 * expiredCount) }, { headers: corsHeaders });
-            }
-          }
-
-          if (totalPersonaScoreAdded > 0) {
-            const { data: walletData } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
-            w = walletData;
-            if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) + totalPersonaScoreAdded }).eq('user_id', userId);
-          }
-
-          return NextResponse.json({ success: true, resolvedAs: highestResolvedAs, personaScore: (w?.persona_score || 0) + totalPersonaScoreAdded }, { headers: corsHeaders });
-        }
-      }
-      return NextResponse.json({ success: true, resolvedAs: "continue" }, { headers: corsHeaders });
     }
+
+    // 2. Evaluate ALL active Challenge Contracts with anti-cheat deduplication
+    let contractRes = {
+      contractsCountUpdated: 0,
+      duplicatesCount: 0,
+      anyContractCompleted: false,
+      anyDailyQuotaMet: false,
+      personaBonus: 0,
+      items: [] as Array<{ type: 'victory' | 'progress' | 'duplicate'; mode: string; text: string }>,
+    };
+
+    if (currentProblemId) {
+      contractRes = await internalResolveContracts(userId, currentProblemId, problemSlug);
+    }
+
+    // 3. Update User Persona Score
+    let finalPersonaScore = 0;
+    const totalBonus = quickPlayBonus + contractRes.personaBonus;
+    const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
+    if (w) {
+      finalPersonaScore = (w.persona_score || 0) + totalBonus;
+      if (totalBonus > 0) {
+        await adminClient.from('wallets').update({ persona_score: finalPersonaScore }).eq('user_id', userId);
+      }
+    }
+
+    // 4. Construct Unified Itemized Notification
+    const allItems: Array<{ type: 'victory' | 'progress' | 'duplicate'; text: string }> = [];
+
+    if (quickPlayWon && activeSessionData) {
+      allItems.push({
+        type: 'victory',
+        text: `Quick Play: WON ($${(activeSessionData.amount_cents / 100).toFixed(2)} refunded) 💰`
+      });
+    }
+
+    if (contractRes.items && contractRes.items.length > 0) {
+      allItems.push(...contractRes.items.map(i => ({ type: i.type, text: i.text })));
+    }
+
+    const hasVictory = allItems.some(i => i.type === 'victory');
+    const hasProgress = allItems.some(i => i.type === 'progress');
+    const hasDuplicate = allItems.some(i => i.type === 'duplicate');
+
+    let resolvedAs = 'none';
+    let title = '';
+    let messageText = '';
+
+    if (hasVictory) {
+      resolvedAs = 'victory';
+      title = 'VICTORY';
+      messageText = hasProgress
+        ? 'Challenge Conquered & Other Challenges Advanced!'
+        : 'Challenge Victory!';
+    } else if (hasProgress) {
+      resolvedAs = 'progress';
+      title = 'CHALLENGE PROGRESS';
+      messageText = 'Challenge quota advancing.';
+    } else if (hasDuplicate) {
+      resolvedAs = 'duplicate_solve';
+      title = 'DUPLICATE SOLVE';
+      messageText = 'You have already credited this problem for your active challenge. Solve a distinct problem to advance!';
+    } else {
+      // No active quickplay or challenges affected: SILENCE!
+      resolvedAs = 'none';
+    }
+
+    return NextResponse.json({
+      success: true,
+      resolvedAs,
+      title,
+      text: messageText,
+      items: allItems,
+      personaScore: finalPersonaScore
+    }, { headers: corsHeaders });
 
   } catch (error) {
     console.error("Resolve API error:", error);

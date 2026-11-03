@@ -139,6 +139,12 @@ export async function POST(request: Request) {
         }
         // If wrong answer in "time_crunch" but still has time, do nothing.
       }
+
+      // If accepted, also advance active Challenge Contracts (Blood Pact / Gauntlet) with anti-cheat deduplication
+      if (result.verdict === "accepted") {
+        const { internalResolveContracts } = await import("@/lib/internalStake");
+        await internalResolveContracts(user.id, problemId);
+      }
     }
 
     // ── 7. Return results ──────────────────────────────────────────────────

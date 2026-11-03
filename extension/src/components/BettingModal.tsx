@@ -10,11 +10,27 @@ interface Props {
   setActiveSessionMode: (mode: string) => void;
   setTimerEndMs: (ms: number | null) => void;
   setHasActiveContract: (has: boolean) => void;
+  strictMode: boolean;
+  setStrictMode: (val: boolean) => void;
+  hasActiveMoneyStake: boolean;
+  isAntiCheatActive: boolean;
 }
 
 type DashboardView = 'active_sessions' | 'main' | 'quick_play' | 'blood_pact' | 'gauntlet';
 
-export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, setActiveSessionMode, setTimerEndMs, setHasActiveContract }: Props) {
+export function BettingModal({
+  userId,
+  uiState,
+  setUiState,
+  setActiveSessionId,
+  setActiveSessionMode,
+  setTimerEndMs,
+  setHasActiveContract,
+  strictMode,
+  setStrictMode,
+  hasActiveMoneyStake,
+  isAntiCheatActive,
+}: Props) {
   const [view, setView] = useState<DashboardView>('main');
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
 
@@ -43,67 +59,77 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
   const [checkoutMode, setCheckoutMode] = useState<'none' | 'payment_options' | 'stripe'>('none');
   const [isStripeLoading, setIsStripeLoading] = useState(false);
 
-  useEffect(() => {
-    if (uiState === 'MODAL' && userId) {
-      // Fetch Active Contracts (which triggers Lazy Evaluation sweep in backend)
-      chrome.runtime.sendMessage(
-        { action: 'fetch_api', url: `http://localhost:3000/api/extension/contracts?userId=${userId}&t=${Date.now()}` },
-        (contractRes) => {
-          if (contractRes?.data?.contracts) {
-            setActiveContracts(contractRes.data.contracts);
-          } else {
-            setActiveContracts([]);
-          }
+  // Unified Fetch: Contracts, Wallet, and Active Sessions
+  const fetchActiveData = () => {
+    if (!userId) return;
 
-          // Now fetch Wallet (guarantees sweep debt is reflected)
-          chrome.runtime.sendMessage(
-            { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}&t=${Date.now()}` },
-            (walletRes) => {
-              if (walletRes?.data?.balanceCents !== undefined) {
-                setWalletBalance(walletRes.data.balanceCents);
-                setPersonaScore(walletRes.data.personaScore || 0);
-                if (walletRes.data.isBanned) {
-                  setIsBanned(true);
-                }
-              }
-            }
-          );
-        }
-      );
-    }
-  }, [uiState, userId]);
+    // Fetch Active Contracts (which triggers Lazy Evaluation sweep in backend)
+    chrome.runtime.sendMessage(
+      { action: 'fetch_api', url: `http://localhost:3000/api/extension/contracts?userId=${userId}&t=${Date.now()}` },
+      (contractRes) => {
+        const contracts = contractRes?.data?.contracts || [];
+        setActiveContracts(contracts);
+        setHasActiveContract(contracts.length > 0);
 
-  // Payment Polling & Iframe Message Listener
-  useEffect(() => {
-    let interval: any;
-    if (walletBalance !== null && walletBalance < 0) {
-      interval = setInterval(() => {
+        // Fetch Wallet (guarantees sweep debt is reflected)
         chrome.runtime.sendMessage(
           { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}&t=${Date.now()}` },
           (walletRes) => {
             if (walletRes?.data?.balanceCents !== undefined) {
               setWalletBalance(walletRes.data.balanceCents);
-              // If balance >= 0, the debt view will automatically unmount!
+              setPersonaScore(walletRes.data.personaScore || 0);
+              if (walletRes.data.isBanned) {
+                setIsBanned(true);
+              }
             }
           }
         );
-      }, 3000);
+
+        // Fetch Active Sessions
+        chrome.runtime.sendMessage(
+          { action: 'fetch_api', url: `http://localhost:3000/api/extension/sessions?userId=${userId}&t=${Date.now()}` },
+          (sessionsRes) => {
+            if (sessionsRes?.data?.sessions) {
+              setActiveSessions(sessionsRes.data.sessions);
+            }
+          }
+        );
+      }
+    );
+  };
+
+  useEffect(() => {
+    if (uiState === 'MODAL' && userId) {
+      fetchActiveData();
+    }
+  }, [uiState, userId]);
+
+  // Window Focus listener: keep active contracts & wallet fresh if user switched tabs
+  useEffect(() => {
+    const onFocus = () => {
+      if (uiState === 'MODAL' && userId) {
+        fetchActiveData();
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [uiState, userId]);
+
+  // Payment Polling: while debt is unpaid, refresh data every 2.5s
+  useEffect(() => {
+    let interval: any;
+    if (walletBalance !== null && walletBalance < 0) {
+      interval = setInterval(() => {
+        fetchActiveData();
+      }, 2500);
     }
     return () => clearInterval(interval);
   }, [walletBalance, checkoutMode, userId]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // In dev, origin is localhost. In prod, it should be the site URL.
       if (event.data?.type === 'CODESTAKE_PAYMENT_SUCCESS') {
-        chrome.runtime.sendMessage(
-          { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}&t=${Date.now()}` },
-          (walletRes) => {
-            if (walletRes?.data?.balanceCents !== undefined) {
-              setWalletBalance(walletRes.data.balanceCents);
-            }
-          }
-        );
+        fetchActiveData();
       }
     };
     window.addEventListener('message', handleMessage);
@@ -114,29 +140,31 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
   if (isBanned) {
     return (
-      <div className="fixed inset-0 z-[99999] bg-black backdrop-blur-md flex items-center justify-center font-sans">
-        <div className="bg-[#050505] border border-red-900/50 rounded-2xl p-12 max-w-md w-full shadow-[0_0_100px_rgba(153,27,27,0.3)] text-center relative overflow-hidden animate-in zoom-in-95 duration-1000">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-full bg-red-900/30" />
-          <div className="absolute top-1/2 left-0 -translate-y-1/2 w-full h-[1px] bg-red-900/30" />
+      <div className="fixed inset-0 z-[99999] bg-white/90 backdrop-blur-sm flex items-center justify-center font-sans p-4">
+        <div className="nb-box p-8 max-w-md w-full text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="absolute top-0 left-0 w-full h-2 bg-[#ff3333] border-b-4 border-black" />
 
           <button
             onClick={() => setUiState('MINIMIZED')}
-            className="absolute top-4 right-4 text-red-900/50 hover:text-red-500 transition-colors z-50"
+            className="absolute top-4 right-4 text-black hover:bg-[#ff3333] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
 
-          <h2 className="relative z-10 text-4xl font-black text-red-800 mb-6 uppercase tracking-[0.3em] drop-shadow-[0_0_15px_rgba(220,38,38,0.3)]">
-            EXILED
-          </h2>
-          <p className="relative z-10 text-slate-500 font-serif italic text-lg leading-relaxed mb-8">
+          <div className="py-6 px-2 text-center mb-4 mt-2">
+            <h2 className="text-white font-black uppercase text-3xl leading-snug tracking-tighter bg-[#ff3333] p-2 border-4 border-black shadow-[4px_4px_0_0_#000]">
+              EXILED
+            </h2>
+          </div>
+
+          <p className="text-black font-bold text-sm mb-6 bg-white border-2 border-black p-4 shadow-[2px_2px_0_0_#000] italic">
             "You chose the coward's way out.<br />
             Your pact is broken.<br />
             You are permanently banished."
           </p>
-          <div className="relative z-10 text-[10px] text-red-900/70 font-mono tracking-widest uppercase">
+          <div className="text-xs font-black text-black bg-[#ffcc00] border-2 border-black py-2 tracking-widest uppercase shadow-[2px_2px_0_0_#000]">
             NO RETURN.
           </div>
         </div>
@@ -181,7 +209,8 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
           window.open(res.data.url, '_blank');
           setCheckoutMode('stripe');
         } else {
-          alert('Failed to initialize Stripe checkout.');
+          const detail = res?.data?.error || res?.error || 'Make sure the local server (npm run dev) is running on http://localhost:3000.';
+          alert('Failed to initialize Stripe checkout: ' + detail);
         }
       }
     );
@@ -288,7 +317,8 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
             targetDays: mode === 'blood_pact' ? pactDays : 1,
             targetProblemsPerDay: mode === 'blood_pact' ? pactProblems : gauntletProblems,
             durationMinutes: mode === 'gauntlet' ? gauntletMinutes : undefined,
-            penaltyCents: pactPenalty
+            penaltyCents: pactPenalty,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
           })
         }
       },
@@ -374,7 +404,7 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
         {/* Top Tab Bar Navigation */}
         {(view === 'main' || view === 'active_sessions') && (
-          <div className="flex border-4 border-black bg-white mb-6 p-1 shadow-[2px_2px_0_0_#000]">
+          <div className="flex border-4 border-black bg-white mt-6 mb-6 p-1 shadow-[2px_2px_0_0_#000]">
             <button
               onClick={() => setView('main')}
               className={`flex-1 py-2 text-xs font-black uppercase tracking-widest border-2 border-transparent transition ${view === 'main' ? 'bg-[#00ff66] border-black shadow-[2px_2px_0_0_#000] text-black' : 'text-black hover:bg-black/5'}`}
@@ -388,6 +418,16 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
                   { action: 'fetch_api', url: `http://localhost:3000/api/extension/sessions?userId=${userId}&t=${Date.now()}` },
                   (res) => {
                     if (res?.data?.sessions) setActiveSessions(res.data.sessions);
+                    // Immediately re-fetch wallet to catch any debt incurred from lazy sweep
+                    chrome.runtime.sendMessage(
+                      { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}&t=${Date.now()}` },
+                      (walletRes) => {
+                        if (walletRes?.data?.balanceCents !== undefined) {
+                          setWalletBalance(walletRes.data.balanceCents);
+                          setPersonaScore(walletRes.data.personaScore || 0);
+                        }
+                      }
+                    );
                   }
                 );
               }}
@@ -441,7 +481,58 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
         {view === 'main' && (
           <div className="text-center">
-            <h2 className="text-3xl font-black text-black mb-6 tracking-tighter uppercase bg-[#00ff66] inline-block px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">COMMAND DASHBOARD</h2>
+            <h2 className="text-3xl font-black text-black mb-4 tracking-tighter uppercase bg-[#00ff66] inline-block px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">COMMAND DASHBOARD</h2>
+
+            {/* Global Interview Strict Mode Card */}
+            <div className="p-3 border-4 border-black bg-white shadow-[4px_4px_0_0_#000] text-left mb-6">
+              <div className="flex justify-between items-center gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="font-black text-xs uppercase tracking-wider text-black">
+                      ⚡ Interview Strict Mode
+                    </span>
+                    {hasActiveMoneyStake ? (
+                      <span className="text-[9px] font-black uppercase bg-[#ff3333] text-white px-1.5 py-0.5 border-2 border-black shadow-[1px_1px_0_0_#000]">
+                        LOCKED ON 🔒
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-black uppercase bg-[#00ff66] text-black px-1.5 py-0.5 border-2 border-black shadow-[1px_1px_0_0_#000]">
+                        FREE
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] font-bold text-black/70 leading-snug">
+                    {hasActiveMoneyStake
+                      ? "Enforced across all problems during your active challenge."
+                      : "Zero stakes. Blocks paste & resets boilerplate across all problems."}
+                  </p>
+                </div>
+
+                {/* Neo-brutalism Toggle Switch */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (hasActiveMoneyStake) return;
+                    const nextVal = !strictMode;
+                    setStrictMode(nextVal);
+                    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+                      chrome.storage.local.set({ strictMode: nextVal });
+                    }
+                  }}
+                  disabled={hasActiveMoneyStake}
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer border-2 border-black transition-colors duration-200 ease-in-out shadow-[2px_2px_0_0_#000] ${
+                    isAntiCheatActive ? 'bg-[#00ff66]' : 'bg-gray-200'
+                  } ${hasActiveMoneyStake ? 'cursor-not-allowed opacity-90' : 'hover:-translate-y-0.5 active:translate-y-0'}`}
+                  title={hasActiveMoneyStake ? "Anti-Cheat is locked ON while stakes are active" : "Toggle Interview Strict Mode"}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform border-2 border-black bg-white shadow-[1px_1px_0_0_#000] transition duration-200 ease-in-out mt-0.5 ${
+                      isAntiCheatActive ? 'translate-x-5' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
 
             {activeContracts.length > 0 && (
               <div className="space-y-4 mb-6">
@@ -497,20 +588,34 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
         {view === 'quick_play' && (
           <div className="text-center">
-            <h2 className="text-3xl font-black text-black mb-4 uppercase tracking-tighter inline-block bg-[#00ff66] px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">Quick Play</h2>
+            <h2 className="text-3xl font-black text-black mt-6 mb-4 uppercase tracking-tighter inline-block bg-[#00ff66] px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">Quick Play</h2>
             <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] p-4 mb-6 text-left space-y-3">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-black font-black uppercase tracking-widest">Your Stake:</span>
-                <div className="flex gap-4 items-center w-2/3">
-                  <input type="range" min="100" max="10000" step="100" value={stakeAmount} onChange={(e) => setStakeAmount(Number(e.target.value))} className="w-full accent-[#00ff66] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black" />
-                  <div className="relative flex items-center justify-end w-24">
-                    <span className="absolute left-2 text-black font-black text-xs">$</span>
-                    <input type="number" min="1" value={stakeAmount / 100} onChange={(e) => setStakeAmount(Math.max(1, Number(e.target.value)) * 100)} className="bg-[#00ff66] border-2 border-black px-2 py-1 text-black font-mono font-black outline-none w-full text-right" />
+                <span className="text-black font-black uppercase tracking-widest text-xs">Your Stake:</span>
+                <div className="flex gap-3 items-center w-2/3">
+                  <input
+                    type="range"
+                    min="0"
+                    max="50000"
+                    step="100"
+                    value={stakeAmount}
+                    onChange={(e) => setStakeAmount(Number(e.target.value))}
+                    className="w-full accent-[#00ff66] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black"
+                  />
+                  <div className="flex items-center border-2 border-black bg-[#00ff66] px-2 py-1 shadow-[2px_2px_0_0_#000] shrink-0">
+                    <span className="text-black font-black text-xs select-none mr-1">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={stakeAmount / 100}
+                      onChange={(e) => setStakeAmount(Math.max(0, Math.floor(Number(e.target.value) * 100)))}
+                      className="bg-transparent text-black font-mono font-black outline-none w-14 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
                   </div>
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm pt-2 border-t-2 border-black">
-                <span className="text-black font-black uppercase tracking-widest">Mode:</span>
+                <span className="text-black font-black uppercase tracking-widest text-xs">Mode:</span>
                 <div className="flex gap-2 items-center">
                   <button onClick={() => setStakeMode("time_crunch")} className={`px-2 py-1 font-bold text-xs uppercase border-2 transition ${stakeMode === "time_crunch" ? 'bg-black text-white border-black' : 'bg-white text-black border-black hover:bg-gray-100'}`}>⏱️ Time Crunch</button>
                   <button onClick={() => setStakeMode("one_shot")} className={`px-2 py-1 font-bold text-xs uppercase border-2 transition ${stakeMode === "one_shot" ? 'bg-black text-white border-black' : 'bg-white text-black border-black hover:bg-gray-100'}`}>🎯 One Shot</button>
@@ -518,15 +623,35 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
               </div>
               {stakeMode === "time_crunch" && (
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-black font-black uppercase tracking-widest">Timer:</span>
-                  <div className="flex gap-4 items-center w-2/3">
-                    <input type="range" min="5" max="180" step="5" value={timerDuration} onChange={(e) => setTimerDuration(Number(e.target.value))} className="w-full accent-black bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black" />
-                    <div className="flex flex-col items-end w-24">
-                      <div className="relative w-full">
-                        <input type="number" min="5" step="5" value={timerDuration} onChange={(e) => setTimerDuration(Math.max(1, Number(e.target.value)))} className="bg-white border-2 border-black px-2 py-1 text-black font-mono font-black outline-none w-full text-right" />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-black text-xs font-bold">m</span>
+                  <span className="text-black font-black uppercase tracking-widest text-xs">Timer:</span>
+                  <div className="flex gap-3 items-center w-2/3">
+                    <input
+                      type="range"
+                      min="1"
+                      max="180"
+                      step="1"
+                      value={timerDuration}
+                      onChange={(e) => setTimerDuration(Number(e.target.value))}
+                      className="w-full accent-black bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black"
+                    />
+                    <div className="flex flex-col items-end shrink-0">
+                      <div className="flex items-center border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0_0_#000]">
+                        <input
+                          type="number"
+                          min="1"
+                          max="360"
+                          step="1"
+                          value={timerDuration}
+                          onChange={(e) => setTimerDuration(Math.max(1, Math.floor(Number(e.target.value))))}
+                          className="bg-transparent text-black font-mono font-black outline-none w-12 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <span className="text-black font-bold text-xs select-none ml-1">m</span>
                       </div>
-                      {timerDuration >= 60 && <span className="text-[10px] text-black font-bold mt-1">({Math.floor(timerDuration / 60)}h {timerDuration % 60 > 0 ? `${timerDuration % 60}m` : ''})</span>}
+                      {timerDuration >= 60 && (
+                        <span className="text-[10px] text-black font-bold mt-1">
+                          ({Math.floor(timerDuration / 60)}h {timerDuration % 60 > 0 ? `${timerDuration % 60}m` : ''})
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -538,37 +663,66 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
         {view === 'blood_pact' && (
           <div className="text-center">
-            <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter inline-block bg-[#ff3333] px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">The Blood Pact</h2>
+            <h2 className="text-3xl font-black text-white mt-6 mb-2 uppercase tracking-tighter inline-block bg-[#ff3333] px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">The Blood Pact</h2>
             <p className="text-xs font-bold text-black mb-6 bg-[#ffcc00] px-2 py-1 inline-block border-2 border-black">If you miss your quota before midnight, you incur a massive debt.</p>
             <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] p-4 mb-6 text-left space-y-4">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-black font-black uppercase tracking-widest">Length:</span>
-                <div className="flex gap-4 items-center w-2/3">
-                  <input type="range" min="1" max="100" step="1" value={pactDays} onChange={(e) => setPactDays(Number(e.target.value))} className="w-full accent-[#ff3333] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black" />
-                  <div className="flex flex-col items-end w-24">
-                    <div className="relative w-full">
-                      <input type="number" min="1" value={pactDays} onChange={(e) => setPactDays(Math.max(1, Number(e.target.value)))} className="bg-white border-2 border-black px-2 py-1 text-black font-mono font-black outline-none w-full text-right" />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-black text-xs font-bold">d</span>
+                <span className="text-black font-black uppercase tracking-widest text-xs">Length:</span>
+                <div className="flex gap-3 items-center w-2/3">
+                  <input
+                    type="range"
+                    min="1"
+                    max="100"
+                    step="1"
+                    value={pactDays}
+                    onChange={(e) => setPactDays(Number(e.target.value))}
+                    className="w-full accent-[#ff3333] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black"
+                  />
+                  <div className="flex flex-col items-end shrink-0">
+                    <div className="flex items-center border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0_0_#000]">
+                      <input
+                        type="number"
+                        min="1"
+                        max="365"
+                        value={pactDays}
+                        onChange={(e) => setPactDays(Math.max(1, Number(e.target.value)))}
+                        className="bg-transparent text-black font-mono font-black outline-none w-12 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="text-black font-bold text-xs select-none ml-1">d</span>
                     </div>
                     {pactDays >= 30 && <span className="text-[10px] text-black font-bold mt-1">(~{(pactDays / 30).toFixed(1)}m)</span>}
                   </div>
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-black font-black uppercase tracking-widest">Daily Quota:</span>
-                <div className="flex items-center gap-3 bg-white border-2 border-black p-1">
+                <span className="text-black font-black uppercase tracking-widest text-xs">Daily Quota:</span>
+                <div className="flex items-center gap-3 bg-white border-2 border-black p-1 shadow-[2px_2px_0_0_#000]">
                   <button onClick={() => setPactProblems(Math.max(1, pactProblems - 1))} className="w-6 h-6 bg-black hover:bg-gray-800 text-white font-bold flex items-center justify-center">-</button>
                   <span className="text-black font-mono font-black w-4 text-center">{pactProblems}</span>
                   <button onClick={() => setPactProblems(Math.min(10, pactProblems + 1))} className="w-6 h-6 bg-black hover:bg-gray-800 text-white font-bold flex items-center justify-center">+</button>
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm pt-2 border-t-2 border-black">
-                <span className="text-[#ff3333] font-black uppercase tracking-widest">Failure Penalty:</span>
-                <div className="flex gap-4 items-center w-2/3">
-                  <input type="range" min="500" max="50000" step="500" value={pactPenalty} onChange={(e) => setPactPenalty(Number(e.target.value))} className="w-full accent-[#ff3333] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black" />
-                  <div className="relative flex items-center justify-end w-24">
-                    <span className="absolute left-2 text-white font-black text-xs">$</span>
-                    <input type="number" min="5" value={pactPenalty / 100} onChange={(e) => setPactPenalty(Math.max(1, Number(e.target.value)) * 100)} className="bg-[#ff3333] text-white border-2 border-black px-2 py-1 font-mono font-black outline-none w-full text-right" />
+                <span className="text-[#ff3333] font-black uppercase tracking-widest text-xs">Failure Penalty:</span>
+                <div className="flex gap-3 items-center w-2/3">
+                  <input
+                    type="range"
+                    min="0"
+                    max="50000"
+                    step="100"
+                    value={pactPenalty}
+                    onChange={(e) => setPactPenalty(Number(e.target.value))}
+                    className="w-full accent-[#ff3333] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black"
+                  />
+                  <div className="flex items-center border-2 border-black bg-[#ff3333] px-2 py-1 shadow-[2px_2px_0_0_#000] shrink-0">
+                    <span className="text-white font-black text-xs select-none mr-1">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={pactPenalty / 100}
+                      onChange={(e) => setPactPenalty(Math.max(0, Math.floor(Number(e.target.value) * 100)))}
+                      className="bg-transparent text-white font-mono font-black outline-none w-14 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
                   </div>
                 </div>
               </div>
@@ -579,37 +733,71 @@ export function BettingModal({ userId, uiState, setUiState, setActiveSessionId, 
 
         {view === 'gauntlet' && (
           <div className="text-center">
-            <h2 className="text-3xl font-black text-black mb-2 uppercase tracking-tighter inline-block bg-[#ffcc00] px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">The Gauntlet</h2>
+            <h2 className="text-3xl font-black text-black mt-6 mb-2 uppercase tracking-tighter inline-block bg-[#ffcc00] px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">The Gauntlet</h2>
             <p className="text-xs font-bold text-black mb-6 bg-white px-2 py-1 inline-block border-2 border-black">Complete 5 problems back-to-back in under 3 hours. No pauses.</p>
             <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] p-4 mb-6 text-left space-y-4">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-black font-black uppercase tracking-widest">Target Problems:</span>
-                <div className="flex items-center gap-3 bg-white border-2 border-black p-1">
+                <span className="text-black font-black uppercase tracking-widest text-xs">Target Problems:</span>
+                <div className="flex items-center gap-3 bg-white border-2 border-black p-1 shadow-[2px_2px_0_0_#000]">
                   <button onClick={() => setGauntletProblems(Math.max(1, gauntletProblems - 1))} className="w-6 h-6 bg-black hover:bg-gray-800 text-white font-bold flex items-center justify-center">-</button>
                   <span className="text-black font-mono font-black w-4 text-center">{gauntletProblems}</span>
                   <button onClick={() => setGauntletProblems(Math.min(20, gauntletProblems + 1))} className="w-6 h-6 bg-black hover:bg-gray-800 text-white font-bold flex items-center justify-center">+</button>
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-black font-black uppercase tracking-widest">Time Limit:</span>
-                <div className="flex gap-4 items-center w-2/3">
-                  <input type="range" min="30" max="300" step="30" value={gauntletMinutes} onChange={(e) => setGauntletMinutes(Number(e.target.value))} className="w-full accent-[#ffcc00] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black" />
-                  <div className="flex flex-col items-end w-24">
-                    <div className="relative w-full">
-                      <input type="number" min="30" step="30" value={gauntletMinutes} onChange={(e) => setGauntletMinutes(Math.max(1, Number(e.target.value)))} className="bg-white border-2 border-black px-2 py-1 text-black font-mono font-black outline-none w-full text-right" />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-black text-xs font-bold">m</span>
+                <span className="text-black font-black uppercase tracking-widest text-xs">Time Limit:</span>
+                <div className="flex gap-3 items-center w-2/3">
+                  <input
+                    type="range"
+                    min="1"
+                    max="300"
+                    step="1"
+                    value={gauntletMinutes}
+                    onChange={(e) => setGauntletMinutes(Number(e.target.value))}
+                    className="w-full accent-[#ffcc00] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black"
+                  />
+                  <div className="flex flex-col items-end shrink-0">
+                    <div className="flex items-center border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0_0_#000]">
+                      <input
+                        type="number"
+                        min="1"
+                        max="600"
+                        step="1"
+                        value={gauntletMinutes}
+                        onChange={(e) => setGauntletMinutes(Math.max(1, Math.floor(Number(e.target.value))))}
+                        className="bg-transparent text-black font-mono font-black outline-none w-14 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="text-black font-bold text-xs select-none ml-1">m</span>
                     </div>
-                    {gauntletMinutes >= 60 && <span className="text-[10px] text-black font-bold mt-1">({Math.floor(gauntletMinutes / 60)}h {gauntletMinutes % 60 > 0 ? `${gauntletMinutes % 60}m` : ''})</span>}
+                    {gauntletMinutes >= 60 && (
+                      <span className="text-[10px] text-black font-bold mt-1">
+                        ({Math.floor(gauntletMinutes / 60)}h {gauntletMinutes % 60 > 0 ? `${gauntletMinutes % 60}m` : ''})
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
               <div className="flex justify-between items-center text-sm pt-2 border-t-2 border-black">
-                <span className="text-[#ff3333] font-black uppercase tracking-widest">Failure Penalty:</span>
-                <div className="flex gap-4 items-center w-2/3">
-                  <input type="range" min="500" max="50000" step="500" value={pactPenalty} onChange={(e) => setPactPenalty(Number(e.target.value))} className="w-full accent-[#ff3333] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black" />
-                  <div className="relative flex items-center justify-end w-24">
-                    <span className="absolute left-2 text-white font-black text-xs">$</span>
-                    <input type="number" min="5" value={pactPenalty / 100} onChange={(e) => setPactPenalty(Math.max(1, Number(e.target.value)) * 100)} className="bg-[#ff3333] text-white border-2 border-black px-2 py-1 font-mono font-black outline-none w-full text-right" />
+                <span className="text-[#ff3333] font-black uppercase tracking-widest text-xs">Failure Penalty:</span>
+                <div className="flex gap-3 items-center w-2/3">
+                  <input
+                    type="range"
+                    min="0"
+                    max="50000"
+                    step="100"
+                    value={pactPenalty}
+                    onChange={(e) => setPactPenalty(Number(e.target.value))}
+                    className="w-full accent-[#ff3333] bg-gray-200 rounded-none appearance-none cursor-pointer h-2 border-y-2 border-black"
+                  />
+                  <div className="flex items-center border-2 border-black bg-[#ff3333] px-2 py-1 shadow-[2px_2px_0_0_#000] shrink-0">
+                    <span className="text-white font-black text-xs select-none mr-1">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={pactPenalty / 100}
+                      onChange={(e) => setPactPenalty(Math.max(0, Math.floor(Number(e.target.value) * 100)))}
+                      className="bg-transparent text-white font-mono font-black outline-none w-14 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
                   </div>
                 </div>
               </div>

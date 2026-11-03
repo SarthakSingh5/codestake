@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
+import { internalSweepExpiredSessions, internalSweepExpiredContracts } from "@/lib/internalStake";
 
 export const dynamic = 'force-dynamic';
 
@@ -23,11 +24,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400, headers: corsHeaders });
     }
 
+    // Lazy evaluation sweep for all expired sessions and contracts across the entire platform
+    await internalSweepExpiredSessions(userId);
+    await internalSweepExpiredContracts(userId);
+
     const supabase = createSupabaseAdminClient();
 
-    // Note: We bypass RLS implicitly by just checking the userId passed in. 
-    // In a production app, the extension should ideally pass a JWT token via Authorization header.
-    // For now, this is a read-only endpoint so it's safe enough for development.
     const { data: wallet, error } = await supabase
       .from("wallets")
       .select("balance_cents, persona_score, is_banned")

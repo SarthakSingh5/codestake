@@ -5,7 +5,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
 import { revalidatePath } from "next/cache";
 
 export async function createStakeSession(problemId: string, amountCents: number, mode: string, durationMinutes: number) {
-  if (amountCents <= 0) throw new Error("Invalid stake amount");
+  if (amountCents < 0) throw new Error("Invalid stake amount");
 
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();

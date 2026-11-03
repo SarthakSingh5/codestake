@@ -44,7 +44,7 @@ export async function POST(req: Request) {
               name: 'CodeStake Honor Restoration',
               description: 'Clear your negative balance to return to the arena.',
             },
-            unit_amount: amountCents,
+            unit_amount: Math.max(50, amountCents),
           },
           quantity: 1,
         },
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       // We pass the userId in the metadata so the webhook knows who to credit
       metadata: {
         userId: userId,
-        baseAmountCents: amountCents.toString(),
+        baseAmountCents: Math.max(50, amountCents).toString(),
       },
       // Since they are in the extension, we can redirect them to a generic success page on our domain
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/payment-success`,

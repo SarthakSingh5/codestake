@@ -1,18 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import type { UIState } from '../types';
 
 export function useSessionTimer(uiState: UIState, timerEndMs: number | null, activeSessionId: string | null, userId: string | null, setUiState: (state: UIState) => void, setActiveSessionId: (id: string | null) => void) {
-  const [timerString, setTimerString] = useState<string>("--:--");
-
   useEffect(() => {
-    let interval: any;
-    if (uiState === 'TRACKING' && timerEndMs) {
+    let interval: ReturnType<typeof setInterval>;
+    if (uiState === 'TRACKING' && timerEndMs && timerEndMs > 0) {
       interval = setInterval(() => {
-        const remaining = timerEndMs - Date.now();
+        const now = Date.now();
+        const remaining = Math.max(0, timerEndMs - now);
         if (remaining <= 0) {
-          setTimerString("00:00");
           clearInterval(interval);
-
           if (activeSessionId && userId) {
             chrome.runtime.sendMessage(
               {
@@ -33,15 +30,15 @@ export function useSessionTimer(uiState: UIState, timerEndMs: number | null, act
               }
             );
           }
-        } else {
-          const mins = Math.floor(remaining / 60000);
-          const secs = Math.floor((remaining % 60000) / 1000);
-          setTimerString(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
         }
       }, 1000);
     }
     return () => clearInterval(interval);
   }, [uiState, timerEndMs, activeSessionId, userId, setActiveSessionId, setUiState]);
 
-  return timerString;
+  if (!timerEndMs || timerEndMs === 0) return '00:00';
+  const remaining = Math.max(0, timerEndMs - Date.now());
+  const mins = Math.floor(remaining / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }

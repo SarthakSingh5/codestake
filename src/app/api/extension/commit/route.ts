@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { userId, problemId, amountCents, mode, durationMinutes } = body;
 
-    if (!userId || !problemId || !amountCents || !mode || !durationMinutes) {
+    if (!userId || !problemId || amountCents === undefined || amountCents === null || amountCents < 0 || !mode || !durationMinutes) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
     }
 

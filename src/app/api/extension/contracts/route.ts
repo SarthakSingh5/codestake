@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
+import { internalSweepExpiredSessions, internalSweepExpiredContracts } from "@/lib/internalStake";
+import { getLocalMidnightUTC } from "@/lib/timezone";
 
 export const dynamic = 'force-dynamic';
 
@@ -22,83 +24,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400, headers: corsHeaders });
     }
 
-    const supabase = createSupabaseAdminClient();
-
-    // Fetch all active contracts
-    const { data: contracts, error } = await supabase
-      .from('challenge_contracts')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'active');
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    let activeContracts = [];
-
-    if (contracts && contracts.length > 0) {
-      for (const contract of contracts) {
-        const now = new Date();
-        const expiresAt = new Date(contract.expires_at);
-
-        if (now > expiresAt) {
-          // LAZY EVALUATION: Contract timer has expired!
-          
-          if (contract.problems_solved_today < contract.target_problems_per_day) {
-            // FAILURE: Did not meet quota
-            await supabase.rpc('incur_debt', {
-              p_user_id: userId,
-              p_amount: contract.penalty_cents
-            });
-            
-            await supabase.from('challenge_contracts')
-              .update({ status: 'failed' })
-              .eq('id', contract.id);
-              
-            // Decrement Persona Score by 10 on failure
-            const { data: walletData } = await supabase.from('wallets').select('persona_score').eq('user_id', userId).single();
-            if (walletData) {
-              await supabase.from('wallets').update({ persona_score: (walletData.persona_score || 0) - 10 }).eq('user_id', userId);
-            }
-          } else {
-            // SUCCESS: Met the quota for the day/gauntlet
-            if (contract.mode === 'blood_pact') {
-              if (contract.current_day < contract.target_days) {
-                // Advance to next day (FOR TESTING: just +1 min from now)
-                const nextExpiresAt = new Date();
-                nextExpiresAt.setMinutes(nextExpiresAt.getMinutes() + 1);
-                
-                const { data: updatedContract } = await supabase.from('challenge_contracts')
-                  .update({
-                    current_day: contract.current_day + 1,
-                    problems_solved_today: 0,
-                    expires_at: nextExpiresAt.toISOString()
-                  })
-                  .eq('id', contract.id)
-                  .select()
-                  .single();
-                  
-                if (updatedContract) activeContracts.push(updatedContract);
-              } else {
-                // Completed the entire Blood Pact!
-                await supabase.from('challenge_contracts')
-                  .update({ status: 'completed' })
-                  .eq('id', contract.id);
-              }
-            } else {
-              // Gauntlet completed
-              await supabase.from('challenge_contracts')
-                .update({ status: 'completed' })
-                .eq('id', contract.id);
-            }
-          }
-        } else {
-          // Timer has not expired, still active
-          activeContracts.push(contract);
-        }
-      }
-    }
+    // Lazy evaluation sweep for all expired sessions and contracts
+    await internalSweepExpiredSessions(userId);
+    const activeContracts = await internalSweepExpiredContracts(userId);
 
     return NextResponse.json({ contracts: activeContracts }, { status: 200, headers: corsHeaders });
   } catch (err: any) {
@@ -109,7 +37,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, mode, targetDays, targetProblemsPerDay, penaltyCents } = body;
+    const { userId, mode, targetDays, targetProblemsPerDay, penaltyCents, timeZone } = body;
 
     if (!userId || !mode) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
@@ -131,15 +59,18 @@ export async function POST(request: Request) {
     }
 
     // 2. Calculate Expiration
-    const now = new Date();
-    let expiresAt = new Date();
+    let expiresAt: Date;
     
     if (mode === 'blood_pact') {
-      // FOR TESTING: Expires in 1 minute
-      expiresAt.setMinutes(expiresAt.getMinutes() + 1);
+      // Aligns to 11:59:59 PM in user's detected local timezone (with grace period if after 8 PM)
+      expiresAt = getLocalMidnightUTC(timeZone || 'UTC', 0, true);
     } else if (mode === 'gauntlet') {
-      const durationMinutes = body.durationMinutes || 180;
+      const durationMinutes = body.durationMinutes !== undefined && body.durationMinutes !== null ? body.durationMinutes : 180;
+      expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + durationMinutes);
+    } else {
+      expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
     }
 
     // 3. Create the contract
@@ -150,7 +81,7 @@ export async function POST(request: Request) {
         mode,
         target_days: targetDays || 1,
         target_problems_per_day: targetProblemsPerDay || 1,
-        penalty_cents: penaltyCents || 5000,
+        penalty_cents: penaltyCents !== undefined && penaltyCents !== null ? penaltyCents : 5000,
         expires_at: expiresAt.toISOString()
       }])
       .select()

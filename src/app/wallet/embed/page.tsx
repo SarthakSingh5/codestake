@@ -40,14 +40,13 @@ function EmbedContent() {
             order_id: data.orderId,
             handler: function (response: any) {
               setStatus("Payment Successful! Verifying...");
-              // Notify the parent extension that payment was successful
               window.parent.postMessage({ type: 'CODESTAKE_PAYMENT_SUCCESS' }, '*');
             },
             prefill: {
               name: "CodeStake User",
             },
             theme: {
-              color: "#10b981", // Emerald 500
+              color: "#000000",
             },
             config: {
               display: {
@@ -87,7 +86,6 @@ function EmbedContent() {
       }
     };
 
-    // Wait for the script to load before calling init
     const checkScript = setInterval(() => {
       if ((window as any).Razorpay) {
         clearInterval(checkScript);
@@ -99,14 +97,18 @@ function EmbedContent() {
   }, [userId, amountCents, hasOpened]);
 
   return (
-    <div className="min-h-screen bg-[#0b0f1e] text-white flex items-center justify-center font-sans p-4 text-center">
+    <div className="min-h-screen bg-white text-black flex items-center justify-center font-sans p-4 text-center">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="beforeInteractive" />
       {error ? (
-        <div className="text-red-400 font-mono text-sm">{error}</div>
+        <div className="text-xs font-black uppercase text-white bg-[#ff3333] p-3 border-4 border-black shadow-[4px_4px_0_0_#000]">
+          {error}
+        </div>
       ) : (
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-400 text-sm animate-pulse">{status}</p>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-black border-t-[#00ff66] animate-spin shadow-[2px_2px_0_0_#000]"></div>
+          <p className="text-xs font-black uppercase tracking-widest text-black bg-[#ffcc00] px-3 py-1.5 border-2 border-black shadow-[2px_2px_0_0_#000]">
+            {status}
+          </p>
         </div>
       )}
     </div>
@@ -115,7 +117,7 @@ function EmbedContent() {
 
 export default function WalletEmbedPage() {
   return (
-    <Suspense fallback={<div className="bg-[#0b0f1e] min-h-screen"></div>}>
+    <Suspense fallback={<div className="bg-white min-h-screen"></div>}>
       <EmbedContent />
     </Suspense>
   );

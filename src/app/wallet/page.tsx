@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
+import { internalSweepExpiredSessions, internalSweepExpiredContracts } from "@/lib/internalStake";
 import Navbar from "../components/Navbar";
 import Link from "next/link";
 import DepositModal from "./DepositModal";
@@ -36,6 +37,9 @@ export default async function WalletPage() {
   if (!user) {
     redirect("/login");
   }
+
+  await internalSweepExpiredSessions(user.id);
+  await internalSweepExpiredContracts(user.id);
 
   // Fetch the wallet balance
   const { data: wallet } = await supabase
