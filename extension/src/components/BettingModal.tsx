@@ -6,6 +6,7 @@ interface Props {
   userId: string;
   uiState: UIState;
   setUiState: (state: UIState) => void;
+  activeSessionId?: string | null;
   setActiveSessionId: (id: string | null) => void;
   setActiveSessionMode: (mode: string) => void;
   setTimerEndMs: (ms: number | null) => void;
@@ -16,12 +17,13 @@ interface Props {
   isAntiCheatActive: boolean;
 }
 
-type DashboardView = 'active_sessions' | 'main' | 'quick_play' | 'blood_pact' | 'gauntlet';
+type DashboardView = 'active_sessions' | 'main' | 'quick_play' | 'blood_pact' | 'gauntlet' | 'debt';
 
 export function BettingModal({
   userId,
   uiState,
   setUiState,
+  activeSessionId,
   setActiveSessionId,
   setActiveSessionMode,
   setTimerEndMs,
@@ -58,6 +60,19 @@ export function BettingModal({
   // Checkout State
   const [checkoutMode, setCheckoutMode] = useState<'none' | 'payment_options' | 'stripe'>('none');
   const [isStripeLoading, setIsStripeLoading] = useState(false);
+
+  // Keep view in sync when entering or clearing debt
+  useEffect(() => {
+    if (walletBalance !== null && walletBalance < 0) {
+      if (view !== 'active_sessions' && view !== 'debt') {
+        setView('debt');
+      }
+    } else if (walletBalance !== null && walletBalance >= 0) {
+      if (view === 'debt') {
+        setView('main');
+      }
+    }
+  }, [walletBalance]);
 
   // Unified Fetch: Contracts, Wallet, and Active Sessions
   const fetchActiveData = () => {
@@ -227,81 +242,6 @@ export function BettingModal({
     );
   }
 
-  if (walletBalance < 0) {
-    return (
-      <div className="fixed inset-0 z-[99999] bg-white/90 backdrop-blur-sm flex items-center justify-center font-sans p-4">
-        <div className="nb-box p-8 max-w-md w-full text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
-          <div className="absolute top-0 left-0 w-full h-2 bg-[#ff3333] border-b-4 border-black" />
-
-          {checkoutMode !== 'none' && (
-            <button
-              onClick={() => setCheckoutMode('none')}
-              className="absolute top-4 left-4 text-black hover:bg-[#ffcc00] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          )}
-
-          <button
-            onClick={() => setUiState('MINIMIZED')}
-            className="absolute top-4 right-4 text-black hover:bg-[#ff3333] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-
-          {checkoutMode === 'stripe' ? (
-            <div className="p-6 border-4 border-black bg-[#ffcc00] text-center animate-pulse mb-6 mt-8 shadow-[4px_4px_0_0_#000]">
-              <p className="text-black font-black uppercase tracking-widest mb-2">Awaiting Payment...</p>
-              <p className="text-sm text-black/80 font-bold">Please complete the checkout in the new tab. This screen will unlock automatically.</p>
-              <button onClick={() => setCheckoutMode('none')} className="mt-4 text-xs text-black font-bold underline">Cancel</button>
-            </div>
-          ) : checkoutMode === 'payment_options' ? (
-            <div className="mt-6">
-              <div className="w-full h-[400px] overflow-hidden border-4 border-black mb-4 bg-white relative shadow-[4px_4px_0_0_#000]">
-                <iframe src={`http://localhost:3000/wallet/embed?userId=${userId}&amount=${Math.abs(walletBalance)}`} className="w-full h-full border-0" />
-              </div>
-
-              <div className="flex items-center gap-4 mb-4">
-                <div className="h-1 bg-black flex-1"></div>
-                <span className="text-[10px] text-black uppercase tracking-widest font-black">OR</span>
-                <div className="h-1 bg-black flex-1"></div>
-              </div>
-
-              <button onClick={handleStripeCheckout} disabled={isStripeLoading} className="nb-btn w-full py-3 px-2 text-xs flex justify-center items-center gap-2 disabled:opacity-50">
-                <span>{isStripeLoading ? 'Loading...' : 'Pay with Card (Global)'}</span>
-              </button>
-            </div>
-          ) : (
-            <div className="mt-4">
-              <div className="py-8 px-2 text-center mb-4">
-                <p className="text-black font-black uppercase text-3xl leading-snug tracking-tighter bg-[#ff3333] text-white p-2 border-4 border-black shadow-[4px_4px_0_0_#000]">
-                  "{getDialogue(personaScore, 'loss')}"
-                </p>
-              </div>
-
-              <div className="bg-white border-4 border-black p-4 mb-6 flex justify-between items-center text-sm shadow-[4px_4px_0_0_#000]">
-                <span className="text-black uppercase tracking-widest text-xs font-black">Penalty Due</span>
-                <span className="text-black font-mono font-black text-2xl">${(Math.abs(walletBalance) / 100).toFixed(2)}</span>
-              </div>
-
-              <button onClick={() => setCheckoutMode('payment_options')} className="nb-btn nb-btn-danger w-full py-4 px-4 mb-6 tracking-[0.2em] text-lg text-white">
-                RESTORE HONOR
-              </button>
-
-              <button onClick={handlePermanentBan} className="text-black font-black uppercase tracking-[0.2em] text-[10px] hover:bg-black hover:text-white px-2 py-1 transition-colors border-2 border-transparent hover:border-black">
-                i quit and will never come here again
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   const handleStartContract = async (mode: 'blood_pact' | 'gauntlet') => {
     setIsCommitting(true);
     chrome.runtime.sendMessage(
@@ -374,16 +314,18 @@ export function BettingModal({
   // Wipes editor for active contracts without starting a Quick Play session
   const handleSolveForContract = () => {
     window.postMessage({ type: 'CODESTAKE_CLEAR_EDITOR' }, '*');
-    setUiState('MINIMIZED');
+    setUiState(activeSessionId ? 'TRACKING' : 'MINIMIZED');
     // Note: Interceptor handles the 'Accepted' verdict and sends to resolve API which increments contract progress.
   };
 
   return (
     <div className="fixed inset-0 z-[99999] bg-white/90 backdrop-blur-sm flex items-center justify-center font-sans p-4">
       <div className="nb-box p-6 max-w-md w-full relative overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="absolute top-0 left-0 w-full h-2 bg-black" />
+        <div className={`absolute top-0 left-0 w-full h-2 ${walletBalance !== null && walletBalance < 0 && view === 'debt' ? 'bg-[#ff3333]' : 'bg-black'} border-b-4 border-black`} />
+        
+        {/* Close Modal Button */}
         <button
-          onClick={() => setUiState('MINIMIZED')}
+          onClick={() => setUiState(activeSessionId ? 'TRACKING' : 'MINIMIZED')}
           className="absolute top-4 right-4 text-black hover:bg-[#ff3333] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -391,7 +333,19 @@ export function BettingModal({
           </svg>
         </button>
 
-        {view !== 'main' && view !== 'active_sessions' && (
+        {/* Back Button for Sub-views or Debt Checkout */}
+        {view === 'debt' && checkoutMode !== 'none' && (
+          <button
+            onClick={() => setCheckoutMode('none')}
+            className="absolute top-4 left-4 text-black hover:bg-[#ffcc00] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+
+        {view !== 'main' && view !== 'active_sessions' && view !== 'debt' && (
           <button
             onClick={() => setView('main')}
             className="absolute top-4 left-4 text-black hover:bg-[#ffcc00] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
@@ -403,77 +357,208 @@ export function BettingModal({
         )}
 
         {/* Top Tab Bar Navigation */}
-        {(view === 'main' || view === 'active_sessions') && (
+        {(view === 'main' || view === 'active_sessions' || (view === 'debt' && checkoutMode === 'none')) && (
           <div className="flex border-4 border-black bg-white mt-6 mb-6 p-1 shadow-[2px_2px_0_0_#000]">
-            <button
-              onClick={() => setView('main')}
-              className={`flex-1 py-2 text-xs font-black uppercase tracking-widest border-2 border-transparent transition ${view === 'main' ? 'bg-[#00ff66] border-black shadow-[2px_2px_0_0_#000] text-black' : 'text-black hover:bg-black/5'}`}
-            >
-              Forge Pact
-            </button>
+            {walletBalance !== null && walletBalance < 0 ? (
+              <button
+                onClick={() => setView('debt')}
+                className={`flex-1 py-2 text-xs font-black uppercase tracking-widest border-2 border-transparent transition ${
+                  view === 'debt'
+                    ? 'bg-[#ff3333] border-black shadow-[2px_2px_0_0_#000] text-white'
+                    : 'text-black hover:bg-black/5'
+                }`}
+              >
+                💀 Restore Honor
+              </button>
+            ) : (
+              <button
+                onClick={() => setView('main')}
+                className={`flex-1 py-2 text-xs font-black uppercase tracking-widest border-2 border-transparent transition ${
+                  view === 'main'
+                    ? 'bg-[#00ff66] border-black shadow-[2px_2px_0_0_#000] text-black'
+                    : 'text-black hover:bg-black/5'
+                }`}
+              >
+                Forge Pact
+              </button>
+            )}
+
             <button
               onClick={() => {
                 setView('active_sessions');
-                chrome.runtime.sendMessage(
-                  { action: 'fetch_api', url: `http://localhost:3000/api/extension/sessions?userId=${userId}&t=${Date.now()}` },
-                  (res) => {
-                    if (res?.data?.sessions) setActiveSessions(res.data.sessions);
-                    // Immediately re-fetch wallet to catch any debt incurred from lazy sweep
-                    chrome.runtime.sendMessage(
-                      { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}&t=${Date.now()}` },
-                      (walletRes) => {
-                        if (walletRes?.data?.balanceCents !== undefined) {
-                          setWalletBalance(walletRes.data.balanceCents);
-                          setPersonaScore(walletRes.data.personaScore || 0);
-                        }
-                      }
-                    );
-                  }
-                );
+                fetchActiveData();
               }}
-              className={`flex-1 py-2 text-xs font-black uppercase tracking-widest border-2 border-transparent transition ${view === 'active_sessions' ? 'bg-[#ffcc00] border-black shadow-[2px_2px_0_0_#000] text-black' : 'text-black hover:bg-black/5'}`}
+              className={`flex-1 py-2 text-xs font-black uppercase tracking-widest border-2 border-transparent transition ${
+                view === 'active_sessions'
+                  ? 'bg-[#ffcc00] border-black shadow-[2px_2px_0_0_#000] text-black'
+                  : 'text-black hover:bg-black/5'
+              }`}
             >
-              Active Pacts
+              {`Active Pacts ${activeContracts.length + activeSessions.length > 0 ? `(${activeContracts.length + activeSessions.length})` : ''}`}
             </button>
           </div>
         )}
 
-        {view === 'active_sessions' && (
+        {/* ── VIEW: DEBT / RESTORE HONOR ── */}
+        {view === 'debt' && (
           <div>
-            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-              {activeSessions.length === 0 ? (
-                <div className="text-center p-6 border-4 border-black bg-white shadow-[4px_4px_0_0_#000]">
-                  <p className="text-black font-bold uppercase tracking-wider">You have no active pacts.</p>
+            {checkoutMode === 'stripe' ? (
+              <div className="p-6 border-4 border-black bg-[#ffcc00] text-center animate-pulse mb-6 mt-4 shadow-[4px_4px_0_0_#000]">
+                <p className="text-black font-black uppercase tracking-widest mb-2">Awaiting Payment...</p>
+                <p className="text-sm text-black/80 font-bold">Please complete the checkout in the new tab. This screen will unlock automatically.</p>
+                <button onClick={() => setCheckoutMode('none')} className="mt-4 text-xs text-black font-bold underline">Cancel</button>
+              </div>
+            ) : checkoutMode === 'payment_options' ? (
+              <div className="mt-2">
+                <div className="w-full h-[360px] overflow-hidden border-4 border-black mb-4 bg-white relative shadow-[4px_4px_0_0_#000]">
+                  <iframe src={`http://localhost:3000/wallet/embed?userId=${userId}&amount=${Math.abs(walletBalance || 0)}`} className="w-full h-full border-0" />
                 </div>
-              ) : (
-                activeSessions.filter(s => s.problems !== null).map(session => {
-                  const url = session.problems.platform === "leetcode"
-                    ? `https://leetcode.com/problems/${session.problems.slug}`
-                    : "#";
 
-                  return (
-                    <a
-                      key={session.id}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block p-4 border-4 border-black bg-[#fdfdfd] hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] transition-all group"
-                    >
-                      <div className="flex justify-between items-start mb-2 border-b-2 border-black pb-2">
-                        <h3 className="text-black font-black text-sm uppercase truncate pr-4">
-                          {session.problems.title}
-                        </h3>
-                        <span className="text-xs font-mono bg-[#00ff66] px-1 border-2 border-black text-black font-black whitespace-nowrap">
-                          ${(session.amount_cents / 100).toFixed(2)}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="h-1 bg-black flex-1"></div>
+                  <span className="text-[10px] text-black uppercase tracking-widest font-black">OR</span>
+                  <div className="h-1 bg-black flex-1"></div>
+                </div>
+
+                <button onClick={handleStripeCheckout} disabled={isStripeLoading} className="nb-btn w-full py-3 px-2 text-xs flex justify-center items-center gap-2 disabled:opacity-50">
+                  <span>{isStripeLoading ? 'Loading...' : 'Pay with Card (Global)'}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2 text-center">
+                <div className="py-4 px-2 text-center mb-4">
+                  <p className="text-black font-black uppercase text-2xl leading-snug tracking-tighter bg-[#ff3333] text-white p-2 border-4 border-black shadow-[4px_4px_0_0_#000]">
+                    "{getDialogue(personaScore, 'loss')}"
+                  </p>
+                </div>
+
+                <div className="bg-white border-4 border-black p-4 mb-5 flex justify-between items-center text-sm shadow-[4px_4px_0_0_#000]">
+                  <span className="text-black uppercase tracking-widest text-xs font-black">Penalty Due</span>
+                  <span className="text-black font-mono font-black text-2xl">${(Math.abs(walletBalance || 0) / 100).toFixed(2)}</span>
+                </div>
+
+                <button onClick={() => setCheckoutMode('payment_options')} className="nb-btn nb-btn-danger w-full py-3.5 px-4 mb-4 tracking-[0.2em] text-base text-white">
+                  RESTORE HONOR
+                </button>
+
+                {/* Free Interview Strict Mode Toggle while in Debt */}
+                <div className="bg-gray-50 border-2 border-black p-3 mb-5 text-left shadow-[2px_2px_0_0_#000]">
+                  <div className="flex justify-between items-center gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="font-black text-xs uppercase tracking-wider text-black">
+                          ⚡ Strict Mode
+                        </span>
+                        <span className={`text-[8px] font-black uppercase px-1 py-0.2 border border-black ${strictMode ? 'bg-[#00ff66] text-black' : 'bg-gray-200 text-black/60'}`}>
+                          {strictMode ? 'ACTIVE' : 'OFF'}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center text-xs text-black uppercase font-bold mt-2">
-                        <span className="bg-black text-white px-2 py-0.5">{session.problems.platform}</span>
-                        <span className="bg-[#ffcc00] border-2 border-black px-2 py-0.5">{session.mode === 'one_shot' ? 'One Shot' : 'Time Crunch'}</span>
+                      <p className="text-[10px] font-bold text-black/60 leading-tight">
+                        Free interview practice (no paste, clean boilerplate) allowed while debt is active.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextVal = !strictMode;
+                        setStrictMode(nextVal);
+                        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+                          chrome.storage.local.set({ strictMode: nextVal });
+                        }
+                      }}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer border-2 border-black transition-colors duration-200 ease-in-out shadow-[1px_1px_0_0_#000] ${
+                        strictMode ? 'bg-[#00ff66]' : 'bg-gray-200'
+                      }`}
+                      title="Toggle Interview Strict Mode"
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform border border-black bg-white shadow-[1px_1px_0_0_#000] transition duration-200 ease-in-out mt-0.5 ${
+                          strictMode ? 'translate-x-5' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <button onClick={handlePermanentBan} className="text-black font-black uppercase tracking-[0.2em] text-[10px] hover:bg-black hover:text-white px-2 py-1 transition-colors border-2 border-transparent hover:border-black">
+                  i quit and will never come here again
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── VIEW: ACTIVE PACTS (UNIFIED CONTRACTS & SESSIONS) ── */}
+        {view === 'active_sessions' && (
+          <div>
+            <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1 custom-scrollbar">
+              {/* Active Contracts (Blood Pact & Gauntlet) */}
+              {activeContracts.length > 0 && (
+                <div className="space-y-3 mb-3">
+                  {activeContracts.map(contract => (
+                    <div key={contract.id} className={`p-3.5 border-4 border-black text-left shadow-[4px_4px_0_0_#000] ${contract.mode === 'blood_pact' ? 'bg-[#ff3333]' : 'bg-[#ffcc00]'}`}>
+                      <div className="flex justify-between items-center mb-1.5 bg-white border-2 border-black px-2 py-0.5">
+                        <h3 className="text-black font-black uppercase tracking-widest text-[11px]">
+                          {contract.mode === 'blood_pact' ? '🩸 Active Blood Pact' : '🔥 Active Gauntlet'}
+                        </h3>
+                        <span className="text-black text-[11px] font-mono font-black">
+                          ${(contract.penalty_cents / 100).toFixed(2)} PENALTY
+                        </span>
                       </div>
-                    </a>
-                  );
-                })
+                      <div className="text-black font-bold text-xs mb-2.5 bg-white/90 p-2 border-2 border-black">
+                        {contract.mode === 'blood_pact'
+                          ? `Day ${contract.current_day} of ${contract.target_days}. Solved today: ${contract.problems_solved_today}/${contract.target_problems_per_day} (Midnight: 11:59:59 PM)`
+                          : `Gauntlet: Solved ${contract.total_problems_solved}/${contract.target_problems_per_day}`
+                        }
+                      </div>
+                      <button onClick={handleSolveForContract} className="w-full bg-black hover:bg-black/80 text-white border-2 border-black py-1.5 transition text-xs font-black tracking-wider uppercase shadow-[2px_2px_0_0_#000]">
+                        SOLVE PROBLEM ↗
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Active Quick Play Sessions */}
+              {activeSessions.length > 0 && (
+                <div className="space-y-3">
+                  {activeSessions.filter(s => s.problems !== null).map(session => {
+                    const url = session.problems.platform === "leetcode"
+                      ? `https://leetcode.com/problems/${session.problems.slug}`
+                      : "#";
+
+                    return (
+                      <a
+                        key={session.id}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block p-3.5 border-4 border-black bg-white hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] transition-all group"
+                      >
+                        <div className="flex justify-between items-start mb-1.5 border-b-2 border-black pb-1">
+                          <h3 className="text-black font-black text-xs uppercase truncate pr-3 group-hover:text-[#00ff66]">
+                            {session.problems.title}
+                          </h3>
+                          <span className="text-xs font-mono bg-[#00ff66] px-1.5 py-0.5 border-2 border-black text-black font-black whitespace-nowrap">
+                            ${(session.amount_cents / 100).toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] text-black uppercase font-bold mt-1">
+                          <span className="bg-black text-white px-1.5 py-0.5">{session.problems.platform}</span>
+                          <span className="bg-[#ffcc00] border border-black px-1.5 py-0.5">{session.mode === 'one_shot' ? 'One Shot' : 'Time Crunch'}</span>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Empty State */}
+              {activeContracts.length === 0 && activeSessions.length === 0 && (
+                <div className="text-center p-6 border-4 border-black bg-white shadow-[4px_4px_0_0_#000]">
+                  <p className="text-black font-bold uppercase tracking-wider text-xs">You have no active pacts or challenges.</p>
+                </div>
               )}
             </div>
           </div>
@@ -533,28 +618,6 @@ export function BettingModal({
                 </button>
               </div>
             </div>
-
-            {activeContracts.length > 0 && (
-              <div className="space-y-4 mb-6">
-                {activeContracts.map(contract => (
-                  <div key={contract.id} className={`p-4 border-4 border-black text-left shadow-[4px_4px_0_0_#000] ${contract.mode === 'blood_pact' ? 'bg-[#ff3333]' : 'bg-[#ffcc00]'}`}>
-                    <div className="flex justify-between items-center mb-2 bg-white border-2 border-black px-2 py-1">
-                      <h3 className="text-black font-black uppercase tracking-widest text-xs">Active {contract.mode === 'blood_pact' ? 'Blood Pact' : 'Gauntlet'}</h3>
-                      <span className="text-black text-xs font-mono font-black">${(contract.penalty_cents / 100).toFixed(2)} PENALTY</span>
-                    </div>
-                    <div className="text-black font-bold text-sm mb-4 bg-white/90 p-2 border-2 border-black">
-                      {contract.mode === 'blood_pact'
-                        ? `Day ${contract.current_day} of ${contract.target_days}. Solved today: ${contract.problems_solved_today}/${contract.target_problems_per_day}`
-                        : `Gauntlet: Solved ${contract.total_problems_solved}/${contract.target_problems_per_day}`
-                      }
-                    </div>
-                    <button onClick={handleSolveForContract} className="w-full bg-black hover:bg-black/80 text-white border-4 border-transparent py-2 transition text-sm font-black tracking-wider uppercase">
-                      SOLVE PROBLEM
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
 
             <div className="grid grid-cols-1 gap-4">
               <button

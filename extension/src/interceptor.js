@@ -84,6 +84,82 @@ window.fetch = async function (...args) {
 };
 
 let isResettingBoilerplate = false;
+let isAntiCheatActiveInPage = false;
+
+// ── LAYER 2: OVERRIDE BROWSER CLIPBOARD API ─────────────────────────────────
+// When Anti-Cheat is active, reading the clipboard returns empty string
+if (navigator.clipboard) {
+  const origReadText = navigator.clipboard.readText ? navigator.clipboard.readText.bind(navigator.clipboard) : null;
+  const origRead = navigator.clipboard.read ? navigator.clipboard.read.bind(navigator.clipboard) : null;
+
+  navigator.clipboard.readText = async function () {
+    if (isAntiCheatActiveInPage) {
+      console.warn('[CodeStake] Blocked navigator.clipboard.readText() call.');
+      return '';
+    }
+    return origReadText ? origReadText() : '';
+  };
+
+  if (origRead) {
+    navigator.clipboard.read = async function () {
+      if (isAntiCheatActiveInPage) {
+        console.warn('[CodeStake] Blocked navigator.clipboard.read() call.');
+        return [];
+      }
+      return origRead();
+    };
+  }
+}
+
+// ── LAYER 3: MONACO EDITOR NATIVE KEYGUARD ──────────────────────────────────
+// Intercepts Monaco's internal onKeyDown so Ctrl+V / Cmd+V never executes
+function attachMonacoGuards() {
+  if (!window.monaco || !window.monaco.editor) {
+    setTimeout(attachMonacoGuards, 400);
+    return;
+  }
+
+  const guardEditor = (editor) => {
+    if (!editor || editor.__codestake_guarded) return;
+    editor.__codestake_guarded = true;
+
+    if (editor.onKeyDown) {
+      editor.onKeyDown((e) => {
+        if (!isAntiCheatActiveInPage) return;
+
+        if (e.ctrlKey || e.metaKey) {
+          // In monaco.KeyCode: KeyV is 52, KeyC is 33, KeyX is 54
+          const KeyV = window.monaco.KeyCode ? window.monaco.KeyCode.KeyV : 52;
+          const KeyC = window.monaco.KeyCode ? window.monaco.KeyCode.KeyC : 33;
+          const KeyX = window.monaco.KeyCode ? window.monaco.KeyCode.KeyX : 54;
+
+          if (e.keyCode === KeyV || e.keyCode === KeyC || e.keyCode === KeyX) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.warn('[CodeStake] Blocked Monaco native keydown for KeyCode:', e.keyCode);
+            window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', {
+              detail: {
+                type: 'warning',
+                title: '🚨 ANTI-CHEAT ACTIVE',
+                text: 'Keyboard shortcuts for Copy/Paste are forbidden during active challenges!'
+              }
+            }));
+          }
+        }
+      });
+    }
+  };
+
+  if (window.monaco.editor.onDidCreateEditor) {
+    window.monaco.editor.onDidCreateEditor((ed) => guardEditor(ed));
+  }
+
+  if (window.monaco.editor.getEditors) {
+    window.monaco.editor.getEditors().forEach((ed) => guardEditor(ed));
+  }
+}
+
+attachMonacoGuards();
 
 async function resetMonacoBoilerplate(targetSlug, attempt = 0) {
   const isProblemPage = window.location.pathname.startsWith('/problems/');
@@ -173,8 +249,13 @@ async function resetMonacoBoilerplate(targetSlug, attempt = 0) {
 }
 
 window.addEventListener('message', async (event) => {
-  if (event.data && (event.data.type === 'CODESTAKE_CLEAR_EDITOR' || event.data.type === 'CODESTAKE_ENFORCE_BOILERPLATE')) {
-    resetMonacoBoilerplate(event.data.problemSlug);
+  if (event.data) {
+    if (event.data.type === 'CODESTAKE_SET_ANTICHEAT') {
+      isAntiCheatActiveInPage = Boolean(event.data.enabled);
+      console.log('[CodeStake Interceptor] Anti-Cheat state synced:', isAntiCheatActiveInPage);
+    } else if (event.data.type === 'CODESTAKE_CLEAR_EDITOR' || event.data.type === 'CODESTAKE_ENFORCE_BOILERPLATE') {
+      resetMonacoBoilerplate(event.data.problemSlug);
+    }
   }
 });
 

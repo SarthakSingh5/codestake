@@ -69,6 +69,11 @@ function CodeStakeOverlay() {
     }
   }, [currentPath, isAntiCheatActive]);
 
+  // Sync Anti-Cheat state to page interceptor
+  useEffect(() => {
+    window.postMessage({ type: 'CODESTAKE_SET_ANTICHEAT', enabled: isAntiCheatActive }, '*');
+  }, [isAntiCheatActive]);
+
   // Initialize Auth & Strict Mode from Storage
   useEffect(() => {
     if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
@@ -333,6 +338,7 @@ function CodeStakeOverlay() {
           userId={userId}
           uiState={uiState}
           setUiState={setUiState}
+          activeSessionId={activeSessionId}
           setActiveSessionId={setActiveSessionId}
           setActiveSessionMode={setActiveSessionMode}
           setTimerEndMs={setTimerEndMs}
