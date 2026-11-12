@@ -8,11 +8,11 @@ export const metadata = {
   description: "Admin problem management dashboard",
 };
 
-// ── Difficulty badge colors ──────────────────────────────────────────────────
+// ── Difficulty badge styles ──────────────────────────────────────────────────
 const difficultyStyles: Record<string, string> = {
-  Easy: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20",
-  Medium: "bg-amber-500/15 text-amber-300 ring-amber-400/20",
-  Hard: "bg-red-500/15 text-red-300 ring-red-400/20",
+  Easy: "bg-[#00ff66] text-black border border-black shadow-[1px_1px_0_0_#000]",
+  Medium: "bg-[#ffcc00] text-black border border-black shadow-[1px_1px_0_0_#000]",
+  Hard: "bg-[#ff3333] text-white border border-black shadow-[1px_1px_0_0_#000]",
 };
 
 export default async function AdminProblemsPage() {
@@ -31,74 +31,70 @@ export default async function AdminProblemsPage() {
     .single();
   if (profile?.role !== "admin") redirect("/");
 
-  // Fetch all problems (admin sees drafts too)
+  // Fetch all problems (admin sees drafts too, excluding auto-imported external entries)
   const { data: problems } = await supabase
     .from("problems")
     .select("id, title, slug, difficulty, topics, is_published, created_at")
+    .not("description", "ilike", "%External problem imported%")
     .order("created_at", { ascending: true });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#02050b] via-[#050c1d] to-[#071426] text-slate-100">
-      {/* Ambient glow */}
-      <div
-        className="pointer-events-none fixed -top-32 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full blur-3xl opacity-20"
-        style={{ background: "radial-gradient(circle, #6366f1 0%, transparent 70%)" }}
-        aria-hidden="true"
-      />
-
-      <div className="relative mx-auto max-w-6xl px-6 py-12">
-        {/* Header */}
-        <div className="mb-4">
-          <Link
-            href="/admin"
-            className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-indigo-300 transition mb-4"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            Admin Panel
+    <div className="min-h-screen bg-[#f4f4f0] text-black font-sans pb-16">
+      {/* Top Banner */}
+      <div className="bg-[#ffcc00] border-b-4 border-black px-4 py-2 flex items-center justify-between text-xs font-black uppercase tracking-widest">
+        <div className="flex items-center gap-2">
+          <Link href="/admin" className="hover:underline flex items-center gap-1 font-black">
+            ← Back to HQ Dashboard
           </Link>
         </div>
+        <div className="flex items-center gap-4">
+          <Link href="/problems" className="hover:underline flex items-center gap-1 font-black">
+            Arena ↗
+          </Link>
+        </div>
+      </div>
 
-        <div className="flex items-center justify-between mb-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">Problems</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              {problems?.length ?? 0} problem{(problems?.length ?? 0) !== 1 ? "s" : ""} total
+            <div className="inline-block bg-[#00ff66] border-2 border-black px-3 py-0.5 text-xs font-black uppercase tracking-widest shadow-[2px_2px_0_0_#000] mb-2">
+              Arena Catalog
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-black">
+              Manage Problems
+            </h1>
+            <p className="mt-1 text-sm text-gray-700 font-bold">
+              {problems?.length ?? 0} algorithmic challenge{(problems?.length ?? 0) !== 1 ? "s" : ""} registered in the armory
             </p>
           </div>
+
           <Link
             href="/admin/problems/create"
-            className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:bg-indigo-500 active:scale-[0.98]"
+            className="nb-btn nb-btn-primary px-5 py-2.5 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-[4px_4px_0_0_#000]"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            New Problem
+            <span>+ Create New Problem</span>
           </Link>
         </div>
 
         {/* Problem list */}
         {!problems || problems.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-[#0b0f1e]/80 p-12 backdrop-blur flex flex-col items-center justify-center text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/10">
-              <span className="text-2xl">📝</span>
-            </div>
-            <h3 className="text-lg font-medium text-white">No problems yet</h3>
-            <p className="mt-2 text-sm text-slate-400 max-w-sm">
-              Create your first coding problem to get started.
+          <div className="nb-box p-12 bg-white border-4 border-black text-center shadow-[8px_8px_0_0_#000]">
+            <span className="text-3xl mb-3 block">📝</span>
+            <h3 className="text-xl font-black uppercase text-black">No problems yet</h3>
+            <p className="mt-2 text-xs font-bold text-gray-600 max-w-sm mx-auto uppercase">
+              Create your first coding problem to activate the arena.
             </p>
             <Link
               href="/admin/problems/create"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:bg-indigo-500"
+              className="mt-6 inline-block nb-btn nb-btn-primary px-6 py-3 text-xs font-black uppercase tracking-wider"
             >
               Create Problem
             </Link>
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-[#0b0f1e]/80 backdrop-blur overflow-hidden">
+          <div className="nb-box bg-white border-4 border-black shadow-[8px_8px_0_0_#000] overflow-hidden">
             {/* Table header */}
-            <div className="hidden md:grid grid-cols-[1fr_100px_1fr_100px_140px] gap-4 px-6 py-3 border-b border-white/5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <div className="hidden md:grid grid-cols-[1fr_120px_1fr_120px_160px] gap-4 px-6 py-3.5 bg-black text-white text-xs font-black uppercase tracking-wider border-b-4 border-black">
               <span>Title</span>
               <span>Difficulty</span>
               <span>Topics</span>
@@ -107,97 +103,98 @@ export default async function AdminProblemsPage() {
             </div>
 
             {/* Rows */}
-            {problems.map((problem) => (
-              <div
-                key={problem.id}
-                className="grid grid-cols-1 md:grid-cols-[1fr_100px_1fr_100px_140px] gap-3 md:gap-4 px-6 py-4 border-b border-white/5 last:border-b-0 hover:bg-white/[0.02] transition items-center"
-              >
-                {/* Title */}
-                <div>
-                  <Link
-                    href={`/admin/problems/${problem.id}/edit`}
-                    className="text-sm font-medium text-white hover:text-indigo-300 transition"
-                  >
-                    {problem.title}
-                  </Link>
-                </div>
+            <div className="divide-y-2 divide-black">
+              {problems.map((problem) => (
+                <div
+                  key={problem.id}
+                  className="grid grid-cols-1 md:grid-cols-[1fr_120px_1fr_120px_160px] gap-3 md:gap-4 px-6 py-4 hover:bg-gray-50 transition-colors items-center font-bold text-xs"
+                >
+                  {/* Title */}
+                  <div>
+                    <Link
+                      href={`/admin/problems/${problem.id}/edit`}
+                      className="font-black text-black hover:text-[#00a843] transition uppercase text-sm block"
+                    >
+                      {problem.title}
+                    </Link>
+                    <span className="font-mono text-[10px] text-gray-500">{problem.slug}</span>
+                  </div>
 
-                {/* Difficulty */}
-                <div>
-                  <span
-                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${difficultyStyles[problem.difficulty] ?? ""
-                      }`}
-                  >
-                    {problem.difficulty}
-                  </span>
-                </div>
-
-                {/* Topics */}
-                <div className="flex flex-wrap gap-1">
-                  {(problem.topics as string[])?.map((topic: string) => (
+                  {/* Difficulty */}
+                  <div>
                     <span
-                      key={topic}
-                      className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400"
+                      className={`inline-block px-2 py-0.5 text-[10px] font-black uppercase ${
+                        difficultyStyles[problem.difficulty] ?? "bg-gray-100 text-black border border-black"
+                      }`}
                     >
-                      {topic}
+                      {problem.difficulty}
                     </span>
-                  ))}
-                  {(!problem.topics || (problem.topics as string[]).length === 0) && (
-                    <span className="text-xs text-slate-600">—</span>
-                  )}
-                </div>
+                  </div>
 
-                {/* Status */}
-                <div>
-                  <form
-                    action={async () => {
-                      "use server";
-                      const { togglePublish: toggle } = await import("./actions");
-                      await toggle(problem.id, !problem.is_published);
-                    }}
-                  >
-                    <button
-                      type="submit"
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 transition hover:opacity-80 ${problem.is_published
-                        ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20"
-                        : "bg-slate-500/15 text-slate-400 ring-slate-400/20"
-                        }`}
-                      title={problem.is_published ? "Click to unpublish" : "Click to publish"}
-                    >
+                  {/* Topics */}
+                  <div className="flex flex-wrap gap-1">
+                    {(problem.topics as string[])?.map((topic: string) => (
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${problem.is_published ? "bg-emerald-400" : "bg-slate-500"
-                          }`}
-                      />
-                      {problem.is_published ? "Published" : "Draft"}
-                    </button>
-                  </form>
-                </div>
+                        key={topic}
+                        className="bg-gray-100 px-2 py-0.5 text-[10px] font-black uppercase text-gray-700 border border-black"
+                      >
+                        {topic}
+                      </span>
+                    ))}
+                    {(!problem.topics || (problem.topics as string[]).length === 0) && (
+                      <span className="text-gray-400 font-mono">—</span>
+                    )}
+                  </div>
 
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-2">
-                  <Link
-                    href={`/admin/problems/${problem.id}/edit`}
-                    className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white"
-                  >
-                    Edit
-                  </Link>
-                  <form
-                    action={async () => {
-                      "use server";
-                      const { deleteProblem: del } = await import("./actions");
-                      await del(problem.id);
-                    }}
-                  >
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-red-400 ring-1 ring-white/10 transition hover:bg-red-500/20 hover:text-red-300 hover:ring-red-400/30"
+                  {/* Status */}
+                  <div>
+                    <form
+                      action={async () => {
+                        "use server";
+                        const { togglePublish: toggle } = await import("./actions");
+                        await toggle(problem.id, !problem.is_published);
+                      }}
                     >
-                      Delete
-                    </button>
-                  </form>
+                      <button
+                        type="submit"
+                        className={`inline-block px-2.5 py-1 text-[10px] font-black uppercase border border-black shadow-[1px_1px_0_0_#000] transition hover:translate-x-[1px] hover:translate-y-[1px] ${
+                          problem.is_published
+                            ? "bg-[#00ff66] text-black"
+                            : "bg-gray-200 text-gray-700"
+                        }`}
+                        title={problem.is_published ? "Click to unpublish" : "Click to publish"}
+                      >
+                        {problem.is_published ? "✓ Published" : "Draft"}
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-2">
+                    <Link
+                      href={`/admin/problems/${problem.id}/edit`}
+                      className="px-3 py-1 text-[10px] font-black uppercase bg-white text-black border border-black hover:bg-gray-100 shadow-[1px_1px_0_0_#000]"
+                    >
+                      Edit
+                    </Link>
+                    <form
+                      action={async () => {
+                        "use server";
+                        const { deleteProblem: del } = await import("./actions");
+                        await del(problem.id);
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="px-3 py-1 text-[10px] font-black uppercase bg-[#ff3333] text-white border border-black hover:bg-red-600 shadow-[1px_1px_0_0_#000]"
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>

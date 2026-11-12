@@ -30,35 +30,16 @@ export async function POST(request: Request) {
     const { data: existingProblem } = await adminClient
       .from("problems")
       .select("id")
-      .eq("platform", "leetcode") // The extension currently runs on LeetCode
       .eq("slug", problemId)
-      .single();
+      .maybeSingle();
 
     if (existingProblem) {
       actualProblemId = existingProblem.id;
     } else {
-      // Auto-import the external problem
-      const formattedTitle = problemId
-        .split('-')
-        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-
-      const { data: newProblem, error: insertError } = await adminClient
-        .from("problems")
-        .upsert({
-          slug: problemId,
-          title: formattedTitle,
-          platform: 'leetcode',
-          description: 'External problem imported from LeetCode.'
-        }, { onConflict: 'platform,slug' })
-        .select("id")
-        .single();
-
-      if (insertError || !newProblem) {
-        console.error("Failed to auto-import problem:", insertError);
-        return NextResponse.json({ error: "Failed to auto-import problem. " + insertError?.message }, { status: 500, headers: corsHeaders });
-      }
-      actualProblemId = newProblem.id;
+      return NextResponse.json(
+        { error: "This problem is not currently in the CodeStake Arena. Auto-importing external problems is disabled." },
+        { status: 400, headers: corsHeaders }
+      );
     }
 
     // 1. Check if an active session already exists for this problem

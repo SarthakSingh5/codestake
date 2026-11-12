@@ -1,135 +1,157 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import AdminDashboardClient, { AdminUser, AdminContract, AdminTransaction, AdminSession } from "./AdminDashboardClient";
 
 export const metadata = {
-  title: "Admin — CodeStake",
-  description: "CodeStake admin dashboard",
+  title: "Admin Control Center — CodeStake",
+  description: "CodeStake admin dashboard and platform oversight",
 };
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const supabase = await createSupabaseServerClient();
 
-  // Double-check auth + role server-side (proxy is the first line of defense)
+  // Verify authentication & role
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: currentProfile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "admin") redirect("/");
+  if (currentProfile?.role !== "admin") redirect("/");
+
+  // Use service role admin client for aggregating full platform metrics
+  const adminClient = createSupabaseAdminClient();
+
+  const [
+    authUsersRes,
+    profilesRes,
+    walletsRes,
+    contractsRes,
+    transactionsRes,
+    sessionsRes,
+    problemsRes,
+  ] = await Promise.all([
+    adminClient.auth.admin.listUsers(),
+    adminClient.from("profiles").select("id, role, created_at"),
+    adminClient.from("wallets").select("user_id, balance_cents, persona_score, is_banned"),
+    adminClient
+      .from("challenge_contracts")
+      .select("id, user_id, mode, status, penalty_cents, target_days, target_problems_per_day, total_problems_solved, started_at, expires_at")
+      .order("started_at", { ascending: false })
+      .limit(100),
+    adminClient
+      .from("transactions")
+      .select("id, user_id, amount_cents, type, reference_id, created_at")
+      .order("created_at", { ascending: false })
+      .limit(150),
+    adminClient
+      .from("stake_sessions")
+      .select("id, user_id, amount_cents, mode, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200),
+    adminClient
+      .from("problems")
+      .select("id, difficulty")
+      .not("description", "ilike", "%External problem imported%"),
+  ]);
+
+  // Build User Map
+  const authUsers = authUsersRes.data?.users || [];
+  const profiles = profilesRes.data || [];
+  const wallets = walletsRes.data || [];
+
+  const emailMap: Record<string, string> = {};
+  authUsers.forEach((u) => {
+    emailMap[u.id] = u.email || "Unknown Email";
+  });
+
+  const profileMap: Record<string, any> = {};
+  profiles.forEach((p) => {
+    profileMap[p.id] = p;
+  });
+
+  const walletMap: Record<string, any> = {};
+  wallets.forEach((w) => {
+    walletMap[w.user_id] = w;
+  });
+
+  // Construct complete warrior objects
+  const users: AdminUser[] = authUsers.map((u) => {
+    const prof = profileMap[u.id];
+    const w = walletMap[u.id];
+    return {
+      id: u.id,
+      email: u.email || "No Email",
+      role: prof?.role || "user",
+      balanceCents: w?.balance_cents ?? 0,
+      personaScore: w?.persona_score ?? 0,
+      isBanned: w?.is_banned ?? false,
+      createdAt: u.created_at,
+    };
+  });
+
+  // Construct contracts
+  const contracts: AdminContract[] = (contractsRes.data || []).map((c: any) => ({
+    id: c.id,
+    userId: c.user_id,
+    userEmail: emailMap[c.user_id] || "Unknown User",
+    mode: c.mode,
+    status: c.status,
+    penaltyCents: c.penalty_cents || 0,
+    targetDays: c.target_days || 1,
+    targetProblemsPerDay: c.target_problems_per_day || 1,
+    problemsSolved: c.total_problems_solved || 0,
+    startedAt: c.started_at,
+    expiresAt: c.expires_at,
+  }));
+
+  // Construct transactions
+  const transactions: AdminTransaction[] = (transactionsRes.data || []).map((t: any) => ({
+    id: t.id,
+    userId: t.user_id,
+    userEmail: emailMap[t.user_id] || "Unknown User",
+    amountCents: t.amount_cents || 0,
+    type: t.type,
+    referenceId: t.reference_id,
+    createdAt: t.created_at,
+  }));
+
+  // Construct sessions
+  const sessions: AdminSession[] = (sessionsRes.data || []).map((s: any) => ({
+    id: s.id,
+    userId: s.user_id,
+    amountCents: s.amount_cents || 0,
+    mode: s.mode || "one_shot",
+    status: s.status || "active",
+    createdAt: s.created_at,
+  }));
+
+  // Difficulty breakdown
+  const problems = problemsRes.data || [];
+  const difficultyStats = {
+    Easy: problems.filter((p) => p.difficulty === "Easy").length,
+    Medium: problems.filter((p) => p.difficulty === "Medium").length,
+    Hard: problems.filter((p) => p.difficulty === "Hard").length,
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#02050b] via-[#050c1d] to-[#071426] text-slate-100">
-      {/* Ambient glow */}
-      <div
-        className="pointer-events-none fixed -top-32 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full blur-3xl opacity-20"
-        style={{
-          background: "radial-gradient(circle, #6366f1 0%, transparent 70%)",
-        }}
-        aria-hidden="true"
-      />
-
-      <div className="relative mx-auto max-w-5xl px-6 py-12">
-        {/* Header */}
-        <div className="mb-10 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">
-              Admin Panel
-            </h1>
-            <p className="mt-1 text-sm text-slate-400">
-              Manage CodeStake platform
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-300 ring-1 ring-indigo-400/30">
-              Admin
-            </span>
-            <form
-              action={async () => {
-                "use server";
-                const { createSupabaseServerClient } = await import(
-                  "@/lib/supabase/server-client"
-                );
-                const { redirect } = await import("next/navigation");
-                const supabase = await createSupabaseServerClient();
-                await supabase.auth.signOut();
-                redirect("/");
-              }}
-            >
-              <button
-                type="submit"
-                className="flex items-center gap-2 rounded-lg bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-red-500/20 hover:text-red-300 hover:ring-red-400/30"
-              >
-                Sign Out
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* Quick stats */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-10">
-          {[
-            { label: "Total Users", value: "—", icon: "👥" },
-            { label: "Active Contests", value: "—", icon: "🏆" },
-            { label: "Revenue", value: "—", icon: "💰" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-2xl border border-white/10 bg-[#0b0f1e]/80 p-5 backdrop-blur"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-400">{stat.label}</span>
-                <span className="text-xl">{stat.icon}</span>
-              </div>
-              <p className="mt-2 text-2xl font-bold text-white">{stat.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Action cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {[
-            {
-              title: "Manage Users",
-              description: "View, edit, and moderate user accounts",
-              href: "/admin/users",
-            },
-            {
-              title: "Manage Contests",
-              description: "Create and manage coding contests",
-              href: "/admin/contests",
-            },
-            {
-              title: "Problems",
-              description: "Add and edit coding problems",
-              href: "/admin/problems",
-            },
-            {
-              title: "Settings",
-              description: "Platform configuration and settings",
-              href: "/admin/settings",
-            },
-          ].map((card) => (
-            <Link
-              key={card.title}
-              href={card.href}
-              className="group rounded-2xl border border-white/10 bg-[#0b0f1e]/80 p-6 backdrop-blur transition hover:border-indigo-400/30 hover:bg-[#0b0f1e]"
-            >
-              <h2 className="text-lg font-semibold text-white group-hover:text-indigo-300 transition">
-                {card.title}
-              </h2>
-              <p className="mt-1 text-sm text-slate-400">{card.description}</p>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </div>
+    <AdminDashboardClient
+      currentUserEmail={user.email || "Admin"}
+      users={users}
+      contracts={contracts}
+      transactions={transactions}
+      sessions={sessions}
+      problemsCount={problems.length}
+      difficultyStats={difficultyStats}
+    />
   );
 }
