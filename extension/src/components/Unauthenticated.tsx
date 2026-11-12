@@ -1,4 +1,5 @@
 import type { UIState } from '../types';
+import { API_BASE_URL } from '../config';
 
 interface Props {
   setUiState: (state: UIState) => void;
@@ -19,7 +20,7 @@ export function Unauthenticated({ setUiState }: Props) {
         <p className="text-xs font-bold text-black/70 mb-4 bg-gray-100 p-1 border-2 border-black">Please link your account to start betting.</p>
         <button
           onClick={() => {
-            window.open("http://localhost:3000/extension", "_blank");
+            window.open(`${API_BASE_URL}/extension`, "_blank");
           }}
           className="nb-btn nb-btn-primary w-full py-2 text-sm"
         >

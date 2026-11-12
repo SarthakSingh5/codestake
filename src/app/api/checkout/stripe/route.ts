@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       apiVersion: '2025-01-27.acacia' as any, // fallback for newest types
     });
 
-    const origin = req.headers.get('origin') || 'http://localhost:3000';
+    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'https://codestake-zeta.vercel.app';
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -47,8 +47,8 @@ export async function POST(req: Request) {
         },
       ],
       mode: 'payment',
-      success_url: `${origin}/wallet?deposit=success`,
-      cancel_url: `${origin}/wallet?deposit=cancelled`,
+      success_url: `${origin}/payment-success`,
+      cancel_url: `${origin}/wallet?canceled=true`,
       metadata: {
         userId: user.id,
         baseAmountCents: amountCents.toString(), // Used by webhook to credit base amount

@@ -29,19 +29,20 @@ export async function internalResolveStakeWin(sessionId: string) {
 export async function internalFailStakeSession(sessionId: string) {
   const adminClient = createSupabaseAdminClient();
 
-  const { data: session } = await adminClient
-    .from("stake_sessions")
-    .select("*")
-    .eq("id", sessionId)
-    .eq("status", "active")
-    .single();
-
-  if (!session) return;
-
-  await adminClient
+  // Atomically claim the transition from 'active' to 'lost'
+  // If another concurrent request already transitioned it, this update affects 0 rows
+  const { data: session, error } = await adminClient
     .from("stake_sessions")
     .update({ status: "lost" })
-    .eq("id", sessionId);
+    .eq("id", sessionId)
+    .eq("status", "active")
+    .select("user_id, amount_cents, problem_id")
+    .maybeSingle();
+
+  if (error || !session) {
+    // Already claimed/failed or won by another concurrent request! Do nothing!
+    return;
+  }
 
   const { error: debtError } = await adminClient.rpc('incur_debt', {
     p_user_id: session.user_id,
@@ -123,27 +124,40 @@ export async function internalSweepExpiredContracts(userId: string) {
 
     if (now > expiresAt) {
       if (!isQuotaMet) {
-        // Failed quota: incur penalty
-        await adminClient.rpc('incur_debt', {
-          p_user_id: userId,
-          p_amount: contract.penalty_cents
-        });
-
-        await adminClient
+        // ATOMIC CLAIM: Only 1 request can transition status from 'active' to 'failed'
+        const { data: claimedContract, error: claimErr } = await adminClient
           .from('challenge_contracts')
           .update({ status: 'failed' })
-          .eq('id', contract.id);
+          .eq('id', contract.id)
+          .eq('status', 'active')
+          .select('id, penalty_cents')
+          .maybeSingle();
 
-        const { data: walletData } = await adminClient
-          .from('wallets')
-          .select('persona_score')
-          .eq('user_id', userId)
-          .single();
-        if (walletData) {
-          await adminClient
+        // If another concurrent request already marked it failed, SKIP! Never incur debt multiple times!
+        if (!claimErr && claimedContract) {
+          await adminClient.rpc('incur_debt', {
+            p_user_id: userId,
+            p_amount: contract.penalty_cents
+          });
+
+          await adminClient.from("transactions").insert({
+            user_id: userId,
+            amount_cents: -contract.penalty_cents,
+            type: "stake_lost",
+            reference_id: contract.id
+          });
+
+          const { data: walletData } = await adminClient
             .from('wallets')
-            .update({ persona_score: (walletData.persona_score || 0) - 10 })
-            .eq('user_id', userId);
+            .select('persona_score')
+            .eq('user_id', userId)
+            .single();
+          if (walletData) {
+            await adminClient
+              .from('wallets')
+              .update({ persona_score: (walletData.persona_score || 0) - 10 })
+              .eq('user_id', userId);
+          }
         }
       } else {
         // Met quota for the day or gauntlet
@@ -166,14 +180,27 @@ export async function internalSweepExpiredContracts(userId: string) {
 
             if (now > nextExpiresAt) {
               // User was away across multiple days and missed Day 2's deadline
-              await adminClient.rpc('incur_debt', {
-                p_user_id: userId,
-                p_amount: contract.penalty_cents
-              });
-              await adminClient
+              const { data: claimedContract, error: claimErr } = await adminClient
                 .from('challenge_contracts')
                 .update({ status: 'failed' })
-                .eq('id', contract.id);
+                .eq('id', contract.id)
+                .eq('status', 'active')
+                .select('id, penalty_cents')
+                .maybeSingle();
+
+              if (!claimErr && claimedContract) {
+                await adminClient.rpc('incur_debt', {
+                  p_user_id: userId,
+                  p_amount: contract.penalty_cents
+                });
+
+                await adminClient.from("transactions").insert({
+                  user_id: userId,
+                  amount_cents: -contract.penalty_cents,
+                  type: "stake_lost",
+                  reference_id: contract.id
+                });
+              }
             } else if (updatedContract) {
               activeContracts.push(updatedContract);
             }
@@ -253,9 +280,24 @@ export async function internalResolveContracts(
     // Check expiration first
     if (now > expiresAt) {
       if (!isQuotaMet) {
-        // Expired without meeting quota: fail contract and incur penalty
-        await adminClient.rpc('incur_debt', { p_user_id: userId, p_amount: contract.penalty_cents });
-        await adminClient.from('challenge_contracts').update({ status: 'failed' }).eq('id', contract.id);
+        // Expired without meeting quota: fail contract and incur penalty atomically
+        const { data: claimedContract, error: claimErr } = await adminClient
+          .from('challenge_contracts')
+          .update({ status: 'failed' })
+          .eq('id', contract.id)
+          .eq('status', 'active')
+          .select('id, penalty_cents')
+          .maybeSingle();
+
+        if (!claimErr && claimedContract) {
+          await adminClient.rpc('incur_debt', { p_user_id: userId, p_amount: contract.penalty_cents });
+          await adminClient.from("transactions").insert({
+            user_id: userId,
+            amount_cents: -contract.penalty_cents,
+            type: "stake_lost",
+            reference_id: contract.id
+          });
+        }
         continue;
       } else if (contract.mode === 'blood_pact') {
         // Met previous quota, advance to next day
@@ -265,8 +307,23 @@ export async function internalResolveContracts(
 
           if (now > nextExpiresAt) {
             // User was away across multiple days and missed subsequent day's deadline
-            await adminClient.rpc('incur_debt', { p_user_id: userId, p_amount: contract.penalty_cents });
-            await adminClient.from('challenge_contracts').update({ status: 'failed' }).eq('id', contract.id);
+            const { data: claimedContract, error: claimErr } = await adminClient
+              .from('challenge_contracts')
+              .update({ status: 'failed' })
+              .eq('id', contract.id)
+              .eq('status', 'active')
+              .select('id, penalty_cents')
+              .maybeSingle();
+
+            if (!claimErr && claimedContract) {
+              await adminClient.rpc('incur_debt', { p_user_id: userId, p_amount: contract.penalty_cents });
+              await adminClient.from("transactions").insert({
+                user_id: userId,
+                amount_cents: -contract.penalty_cents,
+                type: "stake_lost",
+                reference_id: contract.id
+              });
+            }
             continue;
           }
 

@@ -56,8 +56,8 @@ export async function POST(req: Request) {
         baseAmountCents: Math.max(50, amountCents).toString(),
       },
       // Since they are in the extension, we can redirect them to a generic success page on our domain
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/payment-success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/wallet?canceled=true`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://codestake-zeta.vercel.app'}/payment-success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://codestake-zeta.vercel.app'}/wallet?canceled=true`,
     });
 
     return NextResponse.json({ url: session.url }, { headers: corsHeaders });

@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
 import HardcoreToggle from "./HardcoreToggle";
 import { lazyEvaluateExpiredStakes } from "@/app/actions/stake";
+import ExtensionSync from "./ExtensionSync";
 
 export default async function Navbar({ hideHardcoreToggle = false }: { hideHardcoreToggle?: boolean } = {}) {
   const supabase = await createSupabaseServerClient();
@@ -36,6 +37,7 @@ export default async function Navbar({ hideHardcoreToggle = false }: { hideHardc
 
   return (
     <nav className={`border-b-4 border-black sticky top-0 z-50 transition-colors duration-500 ${isHardcoreEnabled ? "bg-[#ff3333]" : "bg-[#ffcc00]"}`}>
+      {user && <ExtensionSync userId={user.id} />}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
@@ -69,7 +71,7 @@ export default async function Navbar({ hideHardcoreToggle = false }: { hideHardc
                       href="/wallet"
                       className="flex items-center gap-2 px-4 py-2 text-sm font-black uppercase text-black border-2 border-transparent hover:border-black hover:bg-white transition-colors"
                     >
-                      Wallet
+                      Ledger
                       <span className="inline-flex items-center bg-white border-2 border-black px-2 py-0.5 text-xs font-black text-black">
                         {formatCurrency(walletBalance)}
                       </span>

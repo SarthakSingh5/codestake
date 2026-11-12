@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import ProblemsClient from "./ProblemsClient";
 
 export const metadata = {
-  title: "Problems — CodeStake",
+  title: "Arena — CodeStake",
   description: "Browse and solve coding problems.",
 };
 

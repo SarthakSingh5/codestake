@@ -24,7 +24,12 @@
       "js": ["src/content.tsx"]
     },
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "https://codestake-zeta.vercel.app/*",
+        "https://*.codestake.com/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
       "js": ["src/website-sync.ts"]
     }
   ],
@@ -34,18 +39,20 @@
   },
   "permissions": [
     "storage",
-    "activeTab",
-    "scripting"
+    "activeTab"
   ],
   "host_permissions": [
     "https://codestake-zeta.vercel.app/*",
-    "http://localhost/*"
+    "https://*.codestake.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
   ],
   "externally_connectable": {
     "matches": [
       "https://codestake-zeta.vercel.app/*",
+      "https://*.codestake.com/*",
       "http://localhost/*",
-      "*://localhost/*"
+      "http://127.0.0.1/*"
     ]
   },
   "web_accessible_resources": [

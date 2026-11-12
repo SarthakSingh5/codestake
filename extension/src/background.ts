@@ -1,6 +1,15 @@
 // This is the background service worker.
 // It handles listening to messages from the content script (LeetCode) and securely forwarding them to our Next.js API.
 
+import { API_BASE_URL } from './config';
+
+// Automatically open the extension connect page when installed
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') {
+    chrome.tabs.create({ url: `${API_BASE_URL}/extension` });
+  }
+});
+
 chrome.action.onClicked.addListener((tab) => {
   if (tab.id) {
     chrome.tabs.sendMessage(tab.id, { action: 'toggle_ui' }).catch(err => {

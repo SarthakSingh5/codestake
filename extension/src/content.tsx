@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
-import type { UIState } from './types';
+import type { UIState, ChallengeContract } from './types';
 import { useAntiCheat } from './hooks/useAntiCheat';
 import { useSessionTimer } from './hooks/useSessionTimer';
 import { Unauthenticated } from './components/Unauthenticated';
@@ -9,11 +9,13 @@ import { NotificationBubble } from './components/NotificationBubble';
 import { ActiveTracker } from './components/ActiveTracker';
 import { BettingModal } from './components/BettingModal';
 import { getDialogue } from './lib/PersonalityDialogues';
+import { API_BASE_URL } from './config';
 
 function CodeStakeOverlay() {
   const [uiState, setUiState] = useState<UIState>('HIDDEN');
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [hasActiveContract, setHasActiveContract] = useState<boolean>(false);
+  const [activeContracts, setActiveContracts] = useState<ChallengeContract[]>([]);
   const [strictMode, setStrictMode] = useState<boolean>(false);
   const [activeSessionMode, setActiveSessionMode] = useState<string>("time_crunch");
   const [timerEndMs, setTimerEndMs] = useState<number | null>(null);
@@ -27,9 +29,9 @@ function CodeStakeOverlay() {
     score?: number;
   } | null>(null);
 
-  // Derived Anti-Cheat States
-  const isAntiCheatActive = Boolean(hasActiveContract || activeSessionId || strictMode);
+  // Derived Anti-Cheat States: Only lock when a contract is running or current problem has an active stake
   const hasActiveMoneyStake = Boolean(hasActiveContract || activeSessionId);
+  const isAntiCheatActive = Boolean(hasActiveMoneyStake || strictMode);
 
   // Refs to avoid stale closures in event listeners
   const activeSessionIdRef = useRef<string | null>(null);
@@ -129,41 +131,47 @@ function CodeStakeOverlay() {
 
     // Check Macro-Stakes (Blood Pact / Gauntlet)
     chrome.runtime.sendMessage(
-      { action: 'fetch_api', url: `http://localhost:3000/api/extension/contracts?userId=${userId}&t=${Date.now()}` },
+      { action: 'fetch_api', url: `${API_BASE_URL}/api/extension/contracts?userId=${userId}&t=${Date.now()}` },
       (contractRes) => {
-        if (contractRes?.data?.contracts && contractRes.data.contracts.length > 0) {
-          setHasActiveContract(true);
-        } else {
-          setHasActiveContract(false);
+        const contracts: ChallengeContract[] = contractRes?.data?.contracts || [];
+        setActiveContracts(contracts);
+        const hasContract = contracts.length > 0;
+        setHasActiveContract(hasContract);
+
+        // Problem-specific session check
+        const isProblemPage = window.location.pathname.startsWith('/problems/');
+        const problemSlug = isProblemPage ? window.location.pathname.split("/")[2] : null;
+
+        if (problemSlug) {
+          chrome.runtime.sendMessage(
+            { action: 'fetch_api', url: `${API_BASE_URL}/api/extension/session?userId=${userId}&problemSlug=${problemSlug}&t=${Date.now()}` },
+            (response) => {
+              if (response?.data?.activeSession) {
+                const session = response.data.activeSession;
+                setActiveSessionId(session.id);
+                setActiveSessionMode(session.mode);
+                if (session.mode === 'time_crunch' && session.expires_at) {
+                  setTimerEndMs(new Date(session.expires_at).getTime());
+                } else {
+                  setTimerEndMs(0);
+                }
+                setUiState(prev => (prev === 'MODAL' || prev === 'HIDDEN') ? prev : 'TRACKING');
+              } else if (response?.data?.expired || !response?.data?.activeSession) {
+                setActiveSessionId(null);
+                setTimerEndMs(0);
+                if (hasContract) {
+                  setUiState(prev => (prev === 'MODAL' || prev === 'HIDDEN') ? prev : 'TRACKING');
+                } else {
+                  setUiState(prev => prev === 'TRACKING' ? 'MINIMIZED' : prev);
+                }
+              }
+            }
+          );
+        } else if (hasContract) {
+          setUiState(prev => (prev === 'MODAL' || prev === 'HIDDEN') ? prev : 'TRACKING');
         }
       }
     );
-
-    // Problem-specific session check
-    const isProblemPage = window.location.pathname.startsWith('/problems/');
-    const problemSlug = isProblemPage ? window.location.pathname.split("/")[2] : null;
-
-    if (problemSlug) {
-      chrome.runtime.sendMessage(
-        { action: 'fetch_api', url: `http://localhost:3000/api/extension/session?userId=${userId}&problemSlug=${problemSlug}&t=${Date.now()}` },
-        (response) => {
-          if (response?.data?.activeSession) {
-            const session = response.data.activeSession;
-            setActiveSessionId(session.id);
-            setActiveSessionMode(session.mode);
-            if (session.mode === 'time_crunch' && session.expires_at) {
-              setTimerEndMs(new Date(session.expires_at).getTime());
-            } else {
-              setTimerEndMs(0);
-            }
-            setUiState('TRACKING');
-          } else if (response?.data?.expired || !response?.data?.activeSession) {
-            setActiveSessionId(null);
-            setUiState(prev => prev === 'TRACKING' ? 'MINIMIZED' : prev);
-          }
-        }
-      );
-    }
   };
 
   useEffect(() => {
@@ -231,7 +239,7 @@ function CodeStakeOverlay() {
         chrome.runtime.sendMessage(
           {
             action: 'fetch_api',
-            url: "http://localhost:3000/api/extension/resolve",
+            url: `${API_BASE_URL}/api/extension/resolve`,
             options: {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -304,6 +312,8 @@ function CodeStakeOverlay() {
                 setActiveSessionId(null);
                 setUiState('MINIMIZED');
               }
+              // Immediately sync fresh contract & session states
+              syncStateWithBackend();
             }
           }
         );
@@ -330,7 +340,14 @@ function CodeStakeOverlay() {
       )}
 
       {uiState === 'TRACKING' && (
-        <ActiveTracker activeSessionMode={activeSessionMode} timerString={timerString} setUiState={setUiState} />
+        <ActiveTracker
+          activeSessionMode={activeSessionMode}
+          timerString={timerString}
+          activeSessionId={activeSessionId}
+          gauntletContract={activeContracts.find(c => c.mode === 'gauntlet') || null}
+          bloodPactContract={activeContracts.find(c => c.mode === 'blood_pact') || null}
+          setUiState={setUiState}
+        />
       )}
 
       {uiState === 'MODAL' && userId && (
@@ -347,6 +364,7 @@ function CodeStakeOverlay() {
           setStrictMode={setStrictMode}
           hasActiveMoneyStake={hasActiveMoneyStake}
           isAntiCheatActive={isAntiCheatActive}
+          onSyncState={syncStateWithBackend}
         />
       )}
 

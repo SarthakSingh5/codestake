@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import Script from "next/script";
 
 export default function HonorDebtModal({ debtAmountCents }: { debtAmountCents: number }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState<"stripe" | "razorpay" | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -15,21 +15,32 @@ export default function HonorDebtModal({ debtAmountCents }: { debtAmountCents: n
     // Handle browser back button (bfcache)
     const handlePageShow = (event: PageTransitionEvent) => {
       if (event.persisted) {
-        setIsLoading(null);
+        setIsLoading(false);
         setIsOpen(false);
+        setError(null);
       }
     };
 
-    window.addEventListener('pageshow', handlePageShow);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+        setError(null);
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 
   const amountCents = debtAmountCents;
 
   const handleStripe = async () => {
-    setIsLoading("stripe");
+    setIsLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/checkout/stripe", {
         method: "POST",
@@ -38,130 +49,92 @@ export default function HonorDebtModal({ debtAmountCents }: { debtAmountCents: n
       });
       const data = await res.json();
       if (data.url) {
-        // Force the modal to close and reset immediately BEFORE leaving the page
-        // This ensures the browser saves a 'clean' state in memory for the back button
         setIsOpen(false);
-        setIsLoading(null);
-
+        setIsLoading(false);
         window.location.href = data.url; // Redirect to Stripe
       } else {
-        alert("Failed to initialize Stripe: " + (data.error || "Unknown error"));
-        setIsLoading(null);
+        setError(data.error || "Failed to initialize Stripe checkout.");
+        setIsLoading(false);
       }
     } catch (err) {
       console.error(err);
-      alert("Something went wrong");
-      setIsLoading(null);
+      setError("Network connection error. Please try again.");
+      setIsLoading(false);
     }
   };
-
-  const handleRazorpay = async () => {
-    setIsLoading("razorpay");
-    try {
-      const res = await fetch("/api/checkout/razorpay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amountCents }),
-      });
-      const data = await res.json();
-
-      if (!data.orderId) {
-        alert("Failed to initialize Razorpay: " + (data.error || "Unknown error"));
-        setIsLoading(null);
-        return;
-      }
-
-      const options = {
-        key: data.keyId,
-        amount: data.amount,
-        currency: data.currency,
-        name: "CodeStake",
-        description: `Deposit $${(amountCents / 100).toFixed(2)}`,
-        order_id: data.orderId,
-        handler: function (response: any) {
-          alert("Payment successful! Processing deposit...");
-          window.location.reload();
-        },
-        prefill: {
-          name: "CodeStake User",
-        },
-        theme: {
-          color: "#10b981", // Emerald 500
-        },
-        modal: {
-          ondismiss: function () {
-            setIsLoading(null);
-          }
-        }
-      };
-
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong");
-      setIsLoading(null);
-    }
-  };
-
-  // The amount is always valid because it's hardcoded to their exact debt!
 
   return (
     <>
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
-
       <button
-        onClick={() => setIsOpen(true)}
-        className="nb-btn nb-btn-danger mt-auto w-full py-4 text-white text-lg tracking-[0.2em]"
+        onClick={() => {
+          setError(null);
+          setIsOpen(true);
+        }}
+        className="nb-btn nb-btn-danger mt-auto w-full py-4 text-white text-base sm:text-lg tracking-[0.2em] font-black uppercase shadow-[4px_4px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] transition-all"
       >
         RESTORE HONOR
       </button>
 
       {mounted && isOpen && createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-white/90 backdrop-blur-sm">
-          <div className="nb-box p-8 max-w-md w-full text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="nb-box p-6 sm:p-8 max-w-md w-full text-center relative overflow-hidden bg-white border-8 border-black shadow-[12px_12px_0_0_#000] animate-in zoom-in-95 duration-200">
             <div className="absolute top-0 left-0 w-full h-2 bg-[#ff3333] border-b-4 border-black" />
             
             <button
-              onClick={() => setIsOpen(false)}
-              className="absolute top-4 right-4 text-black hover:bg-[#ff3333] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
+              onClick={() => {
+                setIsOpen(false);
+                setError(null);
+              }}
+              className="absolute top-4 right-4 text-black hover:bg-[#ff3333] hover:text-white border-2 border-black transition-colors z-50 p-1 shadow-[2px_2px_0_0_#000]"
+              title="Close"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
 
-            <div className="py-8 px-2 text-center mb-4">
-              <h2 className="text-black font-black uppercase text-3xl leading-snug tracking-tighter bg-[#ff3333] text-white p-2 border-4 border-black shadow-[4px_4px_0_0_#000]">
+            <div className="py-4 px-2 text-center mb-2">
+              <span className="inline-block bg-[#ff3333] text-white font-black text-xs uppercase px-2.5 py-1 border-2 border-black tracking-widest shadow-[2px_2px_0_0_#000] mb-3">
+                Accountability Breach
+              </span>
+              <h2 className="text-black font-black uppercase text-2xl sm:text-3xl leading-snug tracking-tighter bg-[#ffcc00] p-2 border-4 border-black shadow-[4px_4px_0_0_#000]">
                 THE CODE IS BROKEN
               </h2>
             </div>
 
-            <p className="text-black font-bold text-sm mb-6 bg-white border-2 border-black p-4 shadow-[2px_2px_0_0_#000]">
-              You made a commitment to yourself, and you broke it. A true engineer stands by their word. Settle your tab to restore your honor.
+            <p className="text-black font-bold text-xs sm:text-sm mb-5 bg-white border-2 border-black p-3.5 shadow-[2px_2px_0_0_#000] text-left leading-relaxed">
+              You pledged a stake on your algorithmic skills and missed the deadline. Settle your balance to lift your banishment and re-enter the arena.
             </p>
 
-            <div className="bg-white border-4 border-black p-4 mb-6 flex justify-between items-center text-sm shadow-[4px_4px_0_0_#000]">
+            <div className="bg-white border-4 border-black p-3.5 mb-5 flex justify-between items-center text-sm shadow-[4px_4px_0_0_#000]">
               <span className="text-black uppercase tracking-widest text-xs font-black">Penalty Due</span>
-              <span className="text-black font-mono font-black text-2xl">${(amountCents / 100).toFixed(2)}</span>
+              <span className="text-black font-mono font-black text-2xl">${(amountCents / 100).toFixed(2)} <span className="text-xs font-sans text-gray-600">USD</span></span>
             </div>
 
-            <div className="space-y-4">
-              <button
-                onClick={handleRazorpay}
-                disabled={isLoading !== null}
-                className="nb-btn w-full py-3 px-4 text-sm bg-[#ffcc00] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading === "razorpay" ? "PROCESSING..." : "PAY WITH RAZORPAY (INDIA)"}
-              </button>
+            {error && (
+              <div className="text-xs font-black uppercase text-white bg-[#ff3333] p-3 border-2 border-black shadow-[3px_3px_0_0_#000] mb-4 text-left">
+                ⚠️ {error}
+              </div>
+            )}
 
+            <div className="space-y-3 text-left">
               <button
                 onClick={handleStripe}
-                disabled={isLoading !== null}
-                className="nb-btn nb-btn-primary w-full py-3 px-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading}
+                className="nb-btn nb-btn-danger w-full py-4 text-white text-base font-black uppercase tracking-widest shadow-[4px_4px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_#000] disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {isLoading === "stripe" ? "PROCESSING..." : "PAY WITH STRIPE (GLOBAL)"}
+                {isLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                    <span>GENERATING CHECKOUT...</span>
+                  </>
+                ) : (
+                  <span>💳 PAY VIA CARD / APPLE PAY (STRIPE)</span>
+                )}
               </button>
+              <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider text-center">
+                Instant 256-bit encrypted checkout via Stripe Global.
+              </p>
             </div>
           </div>
         </div>,

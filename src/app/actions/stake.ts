@@ -72,23 +72,20 @@ export async function failStakeSession(sessionId: string, skipRevalidate: boolea
   if (!user) throw new Error("Unauthorized");
 
   // Fetch the session to ensure it belongs to the user and is still active
-  const { data: session } = await supabase
+  const adminClient = createSupabaseAdminClient();
+
+  // Atomically claim the transition from 'active' to 'lost'
+  // If another concurrent request already transitioned it, this update returns null/error
+  const { data: session, error: updateErr } = await adminClient
     .from("stake_sessions")
-    .select("*")
+    .update({ status: "lost" })
     .eq("id", sessionId)
     .eq("user_id", user.id)
     .eq("status", "active")
-    .single();
+    .select("user_id, amount_cents, problem_id")
+    .maybeSingle();
 
-  if (!session) return; // Already resolved or doesn't exist
-
-  const adminClient = createSupabaseAdminClient();
-
-  // Update session status to lost. 
-  await adminClient
-    .from("stake_sessions")
-    .update({ status: "lost" })
-    .eq("id", sessionId);
+  if (updateErr || !session) return; // Already resolved or lost by another thread
 
   // THE PENALTY: Deduct money from their wallet (creating debt)
   const { error: debtError } = await adminClient.rpc('incur_debt', {

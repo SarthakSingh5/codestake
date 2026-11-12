@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { UIState, ChallengeContract } from '../types';
 import { getDialogue } from '../lib/PersonalityDialogues';
+import { LiveCountdownBadge } from './LiveCountdownBadge';
+import { API_BASE_URL } from '../config';
 
 interface Props {
   userId: string;
@@ -15,6 +17,7 @@ interface Props {
   setStrictMode: (val: boolean) => void;
   hasActiveMoneyStake: boolean;
   isAntiCheatActive: boolean;
+  onSyncState?: () => void;
 }
 
 type DashboardView = 'active_sessions' | 'main' | 'quick_play' | 'blood_pact' | 'gauntlet' | 'debt';
@@ -32,6 +35,7 @@ export function BettingModal({
   setStrictMode,
   hasActiveMoneyStake,
   isAntiCheatActive,
+  onSyncState,
 }: Props) {
   const [view, setView] = useState<DashboardView>('main');
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
@@ -58,8 +62,9 @@ export function BettingModal({
   const [isCommitting, setIsCommitting] = useState(false);
 
   // Checkout State
-  const [checkoutMode, setCheckoutMode] = useState<'none' | 'payment_options' | 'stripe'>('none');
-  const [isStripeLoading, setIsStripeLoading] = useState(false);
+  const [checkoutMode, setCheckoutMode] = useState<'none' | 'awaiting_payment'>('none');
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [isHonorRestoredFlash, setIsHonorRestoredFlash] = useState(false);
 
   // Keep view in sync when entering or clearing debt
   useEffect(() => {
@@ -69,7 +74,13 @@ export function BettingModal({
       }
     } else if (walletBalance !== null && walletBalance >= 0) {
       if (view === 'debt') {
-        setView('main');
+        setIsHonorRestoredFlash(true);
+        const timer = setTimeout(() => {
+          setIsHonorRestoredFlash(false);
+          setView('main');
+          setCheckoutMode('none');
+        }, 1800);
+        return () => clearTimeout(timer);
       }
     }
   }, [walletBalance]);
@@ -80,7 +91,7 @@ export function BettingModal({
 
     // Fetch Active Contracts (which triggers Lazy Evaluation sweep in backend)
     chrome.runtime.sendMessage(
-      { action: 'fetch_api', url: `http://localhost:3000/api/extension/contracts?userId=${userId}&t=${Date.now()}` },
+      { action: 'fetch_api', url: `${API_BASE_URL}/api/extension/contracts?userId=${userId}&t=${Date.now()}` },
       (contractRes) => {
         const contracts = contractRes?.data?.contracts || [];
         setActiveContracts(contracts);
@@ -88,7 +99,7 @@ export function BettingModal({
 
         // Fetch Wallet (guarantees sweep debt is reflected)
         chrome.runtime.sendMessage(
-          { action: 'fetch_api', url: `http://localhost:3000/api/extension/wallet?userId=${userId}&t=${Date.now()}` },
+          { action: 'fetch_api', url: `${API_BASE_URL}/api/extension/wallet?userId=${userId}&t=${Date.now()}` },
           (walletRes) => {
             if (walletRes?.data?.balanceCents !== undefined) {
               setWalletBalance(walletRes.data.balanceCents);
@@ -102,7 +113,7 @@ export function BettingModal({
 
         // Fetch Active Sessions
         chrome.runtime.sendMessage(
-          { action: 'fetch_api', url: `http://localhost:3000/api/extension/sessions?userId=${userId}&t=${Date.now()}` },
+          { action: 'fetch_api', url: `${API_BASE_URL}/api/extension/sessions?userId=${userId}&t=${Date.now()}` },
           (sessionsRes) => {
             if (sessionsRes?.data?.sessions) {
               setActiveSessions(sessionsRes.data.sessions);
@@ -187,31 +198,12 @@ export function BettingModal({
     );
   }
 
-  const handlePermanentBan = () => {
-    if (confirm("WARNING: This is permanent. You will be banned from CodeStake forever and locked out of your account. Do you accept the consequences?")) {
-      chrome.runtime.sendMessage(
-        {
-          action: 'fetch_api',
-          url: `http://localhost:3000/api/extension/ban`,
-          options: {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId })
-          }
-        },
-        () => {
-          setIsBanned(true);
-        }
-      );
-    }
-  };
-
   const handleStripeCheckout = () => {
-    setIsStripeLoading(true);
+    setIsCheckoutLoading(true);
     chrome.runtime.sendMessage(
       {
         action: 'fetch_api',
-        url: `http://localhost:3000/api/extension/checkout/stripe`,
+        url: `${API_BASE_URL}/api/extension/checkout/stripe`,
         options: {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -219,12 +211,12 @@ export function BettingModal({
         }
       },
       (res) => {
-        setIsStripeLoading(false);
+        setIsCheckoutLoading(false);
         if (res?.data?.url) {
           window.open(res.data.url, '_blank');
-          setCheckoutMode('stripe');
+          setCheckoutMode('awaiting_payment');
         } else {
-          const detail = res?.data?.error || res?.error || 'Make sure the local server (npm run dev) is running on http://localhost:3000.';
+          const detail = res?.data?.error || res?.error || `Make sure the server is accessible at ${API_BASE_URL}.`;
           alert('Failed to initialize Stripe checkout: ' + detail);
         }
       }
@@ -236,7 +228,7 @@ export function BettingModal({
       <div className="fixed inset-0 z-[99999] bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center font-sans">
         <div className="w-16 h-16 border-4 border-black border-t-[#00ff66] rounded-full animate-spin mb-4 shadow-[4px_4px_0_0_#000]"></div>
         <div className="text-black font-mono tracking-widest text-xs font-black uppercase bg-[#00ff66] px-2 py-1 border-2 border-black shadow-[2px_2px_0_0_#000]">
-          Establishing Neural Link...
+          Loading CodeStake...
         </div>
       </div>
     );
@@ -247,7 +239,7 @@ export function BettingModal({
     chrome.runtime.sendMessage(
       {
         action: 'fetch_api',
-        url: "http://localhost:3000/api/extension/contracts",
+        url: `${API_BASE_URL}/api/extension/contracts`,
         options: {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -265,9 +257,11 @@ export function BettingModal({
       (res) => {
         setIsCommitting(false);
         if (res?.data?.contract) {
-          setActiveContracts(prev => [...prev, res.data.contract]);
+          const newContract = res.data.contract;
+          setActiveContracts(prev => [...prev, newContract]);
           setHasActiveContract(true);
-          setView('main');
+          setView('active_sessions');
+          if (onSyncState) onSyncState();
         } else {
           alert("Error creating contract.");
         }
@@ -287,7 +281,7 @@ export function BettingModal({
     chrome.runtime.sendMessage(
       {
         action: 'fetch_api',
-        url: "http://localhost:3000/api/extension/commit",
+        url: `${API_BASE_URL}/api/extension/commit`,
         options: {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -304,6 +298,7 @@ export function BettingModal({
           setActiveSessionMode(stakeMode);
           setTimerEndMs(stakeMode === 'time_crunch' ? Date.now() + timerDuration * 60000 : 0);
           setUiState('TRACKING');
+          if (onSyncState) onSyncState();
         } else {
           alert("Error starting Quick Play.");
         }
@@ -314,9 +309,12 @@ export function BettingModal({
   // Wipes editor for active contracts without starting a Quick Play session
   const handleSolveForContract = () => {
     window.postMessage({ type: 'CODESTAKE_CLEAR_EDITOR' }, '*');
-    setUiState(activeSessionId ? 'TRACKING' : 'MINIMIZED');
+    setUiState('TRACKING');
+    if (onSyncState) onSyncState();
     // Note: Interceptor handles the 'Accepted' verdict and sends to resolve API which increments contract progress.
   };
+
+  const isDebtStrictLocked = Boolean(hasActiveMoneyStake);
 
   return (
     <div className="fixed inset-0 z-[99999] bg-white/90 backdrop-blur-sm flex items-center justify-center font-sans p-4">
@@ -336,8 +334,11 @@ export function BettingModal({
         {/* Back Button for Sub-views or Debt Checkout */}
         {view === 'debt' && checkoutMode !== 'none' && (
           <button
-            onClick={() => setCheckoutMode('none')}
+            onClick={() => {
+              setCheckoutMode('none');
+            }}
             className="absolute top-4 left-4 text-black hover:bg-[#ffcc00] border-2 border-transparent hover:border-black transition-colors z-50 p-1"
+            title="Go back"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
@@ -402,27 +403,44 @@ export function BettingModal({
         {/* ── VIEW: DEBT / RESTORE HONOR ── */}
         {view === 'debt' && (
           <div>
-            {checkoutMode === 'stripe' ? (
-              <div className="p-6 border-4 border-black bg-[#ffcc00] text-center animate-pulse mb-6 mt-4 shadow-[4px_4px_0_0_#000]">
-                <p className="text-black font-black uppercase tracking-widest mb-2">Awaiting Payment...</p>
-                <p className="text-sm text-black/80 font-bold">Please complete the checkout in the new tab. This screen will unlock automatically.</p>
-                <button onClick={() => setCheckoutMode('none')} className="mt-4 text-xs text-black font-bold underline">Cancel</button>
+            {isHonorRestoredFlash ? (
+              <div className="p-8 border-4 border-black bg-[#00ff66] text-center mb-6 mt-4 shadow-[6px_6px_0_0_#000] animate-in zoom-in-95 duration-200">
+                <div className="w-16 h-16 bg-white border-4 border-black flex items-center justify-center mx-auto mb-4 shadow-[3px_3px_0_0_#000]">
+                  <svg className="w-10 h-10 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-black mb-1">
+                  HONOR RESTORED!
+                </h2>
+                <p className="text-xs font-bold uppercase tracking-widest text-black">
+                  Debt cleared. Arena unlocked.
+                </p>
               </div>
-            ) : checkoutMode === 'payment_options' ? (
-              <div className="mt-2">
-                <div className="w-full h-[360px] overflow-hidden border-4 border-black mb-4 bg-white relative shadow-[4px_4px_0_0_#000]">
-                  <iframe src={`http://localhost:3000/wallet/embed?userId=${userId}&amount=${Math.abs(walletBalance || 0)}`} className="w-full h-full border-0" />
-                </div>
+            ) : checkoutMode === 'awaiting_payment' ? (
+              <div className="p-6 border-4 border-black bg-[#ffcc00] text-center mb-6 mt-4 shadow-[6px_6px_0_0_#000] animate-in zoom-in-95 duration-200">
+                <div className="w-12 h-12 border-4 border-black border-t-white animate-spin mx-auto mb-3 shadow-[2px_2px_0_0_#000]" />
+                <p className="text-black font-black uppercase tracking-widest text-sm mb-1">
+                  Awaiting Payment...
+                </p>
+                <p className="text-xs text-black/80 font-bold mb-4">
+                  Complete card payment in the open Stripe tab. CodeStake will unlock automatically.
+                </p>
 
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="h-1 bg-black flex-1"></div>
-                  <span className="text-[10px] text-black uppercase tracking-widest font-black">OR</span>
-                  <div className="h-1 bg-black flex-1"></div>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => fetchActiveData()}
+                    className="nb-btn nb-btn-primary w-full py-2.5 text-xs uppercase tracking-wider flex items-center justify-center gap-1.5"
+                  >
+                    <span>Check Status Now ⚡</span>
+                  </button>
+                  <button
+                    onClick={() => setCheckoutMode('none')}
+                    className="nb-btn w-full py-2 text-xs uppercase tracking-wider bg-white"
+                  >
+                    Cancel / Back
+                  </button>
                 </div>
-
-                <button onClick={handleStripeCheckout} disabled={isStripeLoading} className="nb-btn w-full py-3 px-2 text-xs flex justify-center items-center gap-2 disabled:opacity-50">
-                  <span>{isStripeLoading ? 'Loading...' : 'Pay with Card (Global)'}</span>
-                </button>
               </div>
             ) : (
               <div className="mt-2 text-center">
@@ -437,11 +455,33 @@ export function BettingModal({
                   <span className="text-black font-mono font-black text-2xl">${(Math.abs(walletBalance || 0) / 100).toFixed(2)}</span>
                 </div>
 
-                <button onClick={() => setCheckoutMode('payment_options')} className="nb-btn nb-btn-danger w-full py-3.5 px-4 mb-4 tracking-[0.2em] text-base text-white">
-                  RESTORE HONOR
+                <button
+                  onClick={handleStripeCheckout}
+                  disabled={isCheckoutLoading}
+                  className="nb-btn nb-btn-danger w-full py-3.5 px-4 mb-3 tracking-[0.2em] text-base text-white disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isCheckoutLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                      <span>OPENING STRIPE...</span>
+                    </>
+                  ) : (
+                    <span>RESTORE HONOR (STRIPE)</span>
+                  )}
                 </button>
 
-                {/* Free Interview Strict Mode Toggle while in Debt */}
+                <div className="text-center mb-4">
+                  <a
+                    href={`${API_BASE_URL}/wallet`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-black font-black uppercase tracking-wider hover:underline"
+                  >
+                    Open Web Ledger ↗
+                  </a>
+                </div>
+
+                {/* Interview Strict Mode Toggle while in Debt */}
                 <div className="bg-gray-50 border-2 border-black p-3 mb-5 text-left shadow-[2px_2px_0_0_#000]">
                   <div className="flex justify-between items-center gap-3">
                     <div className="flex-1">
@@ -449,41 +489,47 @@ export function BettingModal({
                         <span className="font-black text-xs uppercase tracking-wider text-black">
                           ⚡ Strict Mode
                         </span>
-                        <span className={`text-[8px] font-black uppercase px-1 py-0.2 border border-black ${strictMode ? 'bg-[#00ff66] text-black' : 'bg-gray-200 text-black/60'}`}>
-                          {strictMode ? 'ACTIVE' : 'OFF'}
-                        </span>
+                        {isDebtStrictLocked ? (
+                          <span className="text-[9px] font-black uppercase bg-[#ff3333] text-white px-1.5 py-0.5 border-2 border-black shadow-[1px_1px_0_0_#000]">
+                            LOCKED ON 🔒
+                          </span>
+                        ) : (
+                          <span className={`text-[8px] font-black uppercase px-1 py-0.2 border border-black ${strictMode ? 'bg-[#00ff66] text-black' : 'bg-gray-200 text-black/60'}`}>
+                            {strictMode ? 'ACTIVE' : 'OFF'}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-[10px] font-bold text-black/60 leading-tight">
-                        Free interview practice (no paste, clean boilerplate) allowed while debt is active.
+                      <p className="text-[10px] font-bold text-black/70 leading-tight">
+                        {isDebtStrictLocked
+                          ? "Enforced across all problems because another challenge is still active."
+                          : "Free interview practice (no paste, clean boilerplate) allowed while debt is active."}
                       </p>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => {
+                        if (isDebtStrictLocked) return;
                         const nextVal = !strictMode;
                         setStrictMode(nextVal);
                         if (typeof chrome !== 'undefined' && chrome.storage?.local) {
                           chrome.storage.local.set({ strictMode: nextVal });
                         }
                       }}
+                      disabled={isDebtStrictLocked}
                       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer border-2 border-black transition-colors duration-200 ease-in-out shadow-[1px_1px_0_0_#000] ${
-                        strictMode ? 'bg-[#00ff66]' : 'bg-gray-200'
-                      }`}
-                      title="Toggle Interview Strict Mode"
+                        isDebtStrictLocked || strictMode ? 'bg-[#00ff66]' : 'bg-gray-200'
+                      } ${isDebtStrictLocked ? 'cursor-not-allowed opacity-90' : 'hover:-translate-y-0.5'}`}
+                      title={isDebtStrictLocked ? "Strict Mode is locked ON while another challenge is active" : "Toggle Interview Strict Mode"}
                     >
                       <span
                         className={`pointer-events-none inline-block h-4 w-4 transform border border-black bg-white shadow-[1px_1px_0_0_#000] transition duration-200 ease-in-out mt-0.5 ${
-                          strictMode ? 'translate-x-5' : 'translate-x-0.5'
+                          isDebtStrictLocked || strictMode ? 'translate-x-5' : 'translate-x-0.5'
                         }`}
                       />
                     </button>
                   </div>
                 </div>
-
-                <button onClick={handlePermanentBan} className="text-black font-black uppercase tracking-[0.2em] text-[10px] hover:bg-black hover:text-white px-2 py-1 transition-colors border-2 border-transparent hover:border-black">
-                  i quit and will never come here again
-                </button>
               </div>
             )}
           </div>
@@ -506,11 +552,43 @@ export function BettingModal({
                           ${(contract.penalty_cents / 100).toFixed(2)} PENALTY
                         </span>
                       </div>
-                      <div className="text-black font-bold text-xs mb-2.5 bg-white/90 p-2 border-2 border-black">
-                        {contract.mode === 'blood_pact'
-                          ? `Day ${contract.current_day} of ${contract.target_days}. Solved today: ${contract.problems_solved_today}/${contract.target_problems_per_day} (Midnight: 11:59:59 PM)`
-                          : `Gauntlet: Solved ${contract.total_problems_solved}/${contract.target_problems_per_day}`
-                        }
+                      <div className="text-black font-bold text-xs mb-2.5 bg-white/90 p-2 border-2 border-black space-y-1.5">
+                        {contract.mode === 'blood_pact' ? (
+                          <>
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span>Day {contract.current_day} of {contract.target_days}</span>
+                              <span className="font-mono bg-black text-white px-1.5 py-0.2 text-[10px]">
+                                {contract.problems_solved_today}/{contract.target_problems_per_day} SOLVED
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center pt-1 border-t border-black/15 text-[10px]">
+                              {contract.problems_solved_today >= contract.target_problems_per_day ? (
+                                <>
+                                  <span className="text-[#00aa33] font-black">✅ Safe Today! Next day in:</span>
+                                  <LiveCountdownBadge expiresAt={contract.expires_at} style="digital" prefix="⏰ " className="text-[#00aa33] text-xs" />
+                                </>
+                              ) : (
+                                <>
+                                  <span className="text-[#ff3333] font-black">⏰ Reset at Midnight:</span>
+                                  <LiveCountdownBadge expiresAt={contract.expires_at} style="digital" prefix="⏰ " className="text-[#ff3333] text-xs font-black" />
+                                </>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span>Solved: {contract.total_problems_solved}/{contract.target_problems_per_day} problems</span>
+                              <span className="font-mono bg-black text-white px-1.5 py-0.2 text-[10px]">
+                                {Math.round(((contract.total_problems_solved || 0) / (contract.target_problems_per_day || 1)) * 100)}%
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center pt-1 border-t border-black/15 text-[10px]">
+                              <span className="font-black text-black uppercase">Time Remaining:</span>
+                              <LiveCountdownBadge expiresAt={contract.expires_at} style="digital" prefix="⏱️ " className="text-xs text-[#ff3333] font-black" />
+                            </div>
+                          </>
+                        )}
                       </div>
                       <button onClick={handleSolveForContract} className="w-full bg-black hover:bg-black/80 text-white border-2 border-black py-1.5 transition text-xs font-black tracking-wider uppercase shadow-[2px_2px_0_0_#000]">
                         SOLVE PROBLEM ↗
@@ -545,8 +623,19 @@ export function BettingModal({
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-[10px] text-black uppercase font-bold mt-1">
-                          <span className="bg-black text-white px-1.5 py-0.5">{session.problems.platform}</span>
-                          <span className="bg-[#ffcc00] border border-black px-1.5 py-0.5">{session.mode === 'one_shot' ? 'One Shot' : 'Time Crunch'}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="bg-black text-white px-1.5 py-0.5">{session.problems.platform}</span>
+                            <span className="bg-[#ffcc00] border border-black px-1.5 py-0.5">
+                              {session.mode === 'one_shot' ? 'One Shot' : 'Time Crunch'}
+                            </span>
+                          </div>
+                          {session.mode === 'time_crunch' && session.expires_at ? (
+                            <div className="flex items-center gap-1 bg-red-50 border border-black px-1.5 py-0.5 shadow-[1px_1px_0_0_#000]">
+                              <LiveCountdownBadge expiresAt={session.expires_at} style="digital" prefix="⏱️ " className="text-[11px]" />
+                            </div>
+                          ) : (
+                            <span className="text-black/50 font-mono text-[9px]">NO TIMER</span>
+                          )}
                         </div>
                       </a>
                     );
