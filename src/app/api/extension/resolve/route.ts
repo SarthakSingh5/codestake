@@ -79,16 +79,38 @@ export async function POST(request: Request) {
     // 2. Add +1 to EVERY active Challenge Contract (Blood Pact, Gauntlet, etc.) running for this user,
     //    with strict anti-cheat deduplication!
 
-    // Resolve problem ID if present in database (external problems are not auto-imported)
+    // Resolve problem ID (or auto-import external LeetCode problem as unlisted)
     let currentProblemId: string | null = null;
     if (problemSlug) {
+      const cleanSlug = problemSlug.toLowerCase().trim();
       const { data: p } = await adminClient
         .from('problems')
         .select('id')
-        .eq('slug', problemSlug)
+        .eq('slug', cleanSlug)
         .maybeSingle();
 
-      if (p) currentProblemId = p.id;
+      if (p) {
+        currentProblemId = p.id;
+      } else {
+        const formattedTitle = cleanSlug
+          .split('-')
+          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
+
+        const { data: newP } = await adminClient
+          .from('problems')
+          .upsert({
+            slug: cleanSlug,
+            title: formattedTitle,
+            platform: 'leetcode',
+            is_published: false,
+            description: 'External problem imported from LeetCode.'
+          }, { onConflict: 'platform,slug' })
+          .select('id')
+          .maybeSingle();
+
+        if (newP) currentProblemId = newP.id;
+      }
     } else if (sessionId) {
       const { data: s } = await adminClient
         .from('stake_sessions')

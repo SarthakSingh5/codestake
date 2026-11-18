@@ -62,12 +62,6 @@ export default async function Navbar({ hideHardcoreToggle = false }: { hideHardc
                 {user && (
                   <>
                     <Link
-                      href="/profile"
-                      className="px-4 py-2 text-sm font-black uppercase text-black border-2 border-transparent hover:border-black hover:bg-white transition-colors"
-                    >
-                      Profile
-                    </Link>
-                    <Link
                       href="/wallet"
                       className="flex items-center gap-2 px-4 py-2 text-sm font-black uppercase text-black border-2 border-transparent hover:border-black hover:bg-white transition-colors"
                     >

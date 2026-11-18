@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { UIState, ChallengeContract } from '../types';
-import { getDialogue } from '../lib/PersonalityDialogues';
+import { getDebtRoast } from '../lib/PersonalityDialogues';
 import { LiveCountdownBadge } from './LiveCountdownBadge';
 import { API_BASE_URL } from '../config';
 
@@ -56,7 +56,7 @@ export function BettingModal({
 
   // Global State
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [personaScore, setPersonaScore] = useState<number>(0);
+  const [debtRoast, setDebtRoast] = useState<string>(() => getDebtRoast());
   const [isBanned, setIsBanned] = useState<boolean>(false);
   const [activeContracts, setActiveContracts] = useState<ChallengeContract[]>([]);
   const [isCommitting, setIsCommitting] = useState(false);
@@ -103,7 +103,6 @@ export function BettingModal({
           (walletRes) => {
             if (walletRes?.data?.balanceCents !== undefined) {
               setWalletBalance(walletRes.data.balanceCents);
-              setPersonaScore(walletRes.data.personaScore || 0);
               if (walletRes.data.isBanned) {
                 setIsBanned(true);
               }
@@ -263,7 +262,8 @@ export function BettingModal({
           setView('active_sessions');
           if (onSyncState) onSyncState();
         } else {
-          alert("Error creating contract.");
+          const errMsg = res?.data?.error || res?.error || "Error creating contract.";
+          alert(errMsg);
         }
       }
     );
@@ -300,7 +300,8 @@ export function BettingModal({
           setUiState('TRACKING');
           if (onSyncState) onSyncState();
         } else {
-          alert("Error starting Quick Play.");
+          const errMsg = res?.data?.error || res?.error || "Error starting Quick Play.";
+          alert(errMsg);
         }
       }
     );
@@ -445,9 +446,16 @@ export function BettingModal({
             ) : (
               <div className="mt-2 text-center">
                 <div className="py-4 px-2 text-center mb-4">
-                  <p className="text-black font-black uppercase text-2xl leading-snug tracking-tighter bg-[#ff3333] text-white p-2 border-4 border-black shadow-[4px_4px_0_0_#000]">
-                    "{getDialogue(personaScore, 'loss')}"
+                  <p className="text-black font-black uppercase text-2xl leading-snug tracking-tighter bg-[#ff3333] text-white p-3 border-4 border-black shadow-[4px_4px_0_0_#000]">
+                    "{debtRoast}"
                   </p>
+                  <button
+                    onClick={() => setDebtRoast(getDebtRoast())}
+                    type="button"
+                    className="mt-2 text-[10px] font-black uppercase tracking-widest text-black/60 hover:text-black underline cursor-pointer"
+                  >
+                    ↻ Another Reality Check
+                  </button>
                 </div>
 
                 <div className="bg-white border-4 border-black p-4 mb-5 flex justify-between items-center text-sm shadow-[4px_4px_0_0_#000]">

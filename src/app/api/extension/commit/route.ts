@@ -25,21 +25,42 @@ export async function POST(request: Request) {
     const adminClient = createSupabaseAdminClient();
 
     // 0. The extension sends the problemSlug, but we need the UUID
+    const cleanSlug = problemId.toLowerCase().trim();
     let actualProblemId: string;
 
     const { data: existingProblem } = await adminClient
       .from("problems")
       .select("id")
-      .eq("slug", problemId)
+      .eq("slug", cleanSlug)
       .maybeSingle();
 
     if (existingProblem) {
       actualProblemId = existingProblem.id;
     } else {
-      return NextResponse.json(
-        { error: "This problem is not currently in the CodeStake Arena. Auto-importing external problems is disabled." },
-        { status: 400, headers: corsHeaders }
-      );
+      // Auto-import external LeetCode problem as unlisted (is_published: false)
+      // so it never appears in the Arena or Admin problems dashboard!
+      const formattedTitle = cleanSlug
+        .split('-')
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
+      const { data: newProblem, error: insertError } = await adminClient
+        .from("problems")
+        .upsert({
+          slug: cleanSlug,
+          title: formattedTitle,
+          platform: 'leetcode',
+          is_published: false,
+          description: 'External problem imported from LeetCode.'
+        }, { onConflict: 'platform,slug' })
+        .select("id")
+        .single();
+
+      if (insertError || !newProblem) {
+        console.error("Failed to auto-import external problem:", insertError);
+        return NextResponse.json({ error: "Failed to initialize external problem: " + insertError?.message }, { status: 500, headers: corsHeaders });
+      }
+      actualProblemId = newProblem.id;
     }
 
     // 1. Check if an active session already exists for this problem
@@ -49,17 +70,22 @@ export async function POST(request: Request) {
       .eq("user_id", userId)
       .eq("problem_id", actualProblemId)
       .eq("status", "active")
-      .single();
+      .maybeSingle();
 
     if (existing) {
-      return NextResponse.json({ error: "Active session already exists" }, { status: 400, headers: corsHeaders });
+      return NextResponse.json({ error: "An active Quick Play session is already running for this problem." }, { status: 400, headers: corsHeaders });
     }
-    // 2. The Code of Omerta: Check for unpaid debt
+
+    // 2. The Code of Omerta: Check for unpaid debt or bans
     const { data: wallet } = await adminClient
       .from("wallets")
-      .select("balance_cents")
+      .select("balance_cents, is_banned")
       .eq("user_id", userId)
       .single();
+
+    if (wallet?.is_banned) {
+      return NextResponse.json({ error: "Your account is currently banned." }, { status: 403, headers: corsHeaders });
+    }
 
     if (!wallet || wallet.balance_cents < 0) {
       return NextResponse.json({ error: "You have broken the Code. Honor your debt to return to the arena." }, { status: 403, headers: corsHeaders });
