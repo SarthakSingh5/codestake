@@ -8,7 +8,6 @@ import { Unauthenticated } from './components/Unauthenticated';
 import { NotificationBubble } from './components/NotificationBubble';
 import { ActiveTracker } from './components/ActiveTracker';
 import { BettingModal } from './components/BettingModal';
-import { getDialogue } from './lib/PersonalityDialogues';
 import { API_BASE_URL } from './config';
 
 function CodeStakeOverlay() {
@@ -385,7 +384,7 @@ function CodeStakeOverlay() {
             </div>
 
             {popupMsg.items && popupMsg.items.length > 0 && (
-              <div className="mb-2.5 bg-emerald-50/60 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
+              <div className="mb-3 bg-emerald-50/60 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
                 {popupMsg.items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs">
                     <span className={item.type === 'victory' ? 'text-emerald-700 font-black' : 'text-blue-600 font-black'}>
@@ -398,10 +397,6 @@ function CodeStakeOverlay() {
                 ))}
               </div>
             )}
-
-            <p className="text-[11px] font-bold text-black/75 italic mb-3 bg-gray-50 p-2 border-2 border-black">
-              "{getDialogue(popupMsg.score || 0, 'win')}"
-            </p>
 
             <button
               onClick={() => setPopupMsg(null)}
@@ -430,7 +425,7 @@ function CodeStakeOverlay() {
             </div>
 
             {popupMsg.items && popupMsg.items.length > 0 && (
-              <div className="mb-2.5 bg-amber-50/60 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
+              <div className="mb-3 bg-amber-50/60 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
                 {popupMsg.items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs font-bold text-black">
                     <span className="text-amber-600 font-black">✦</span>
@@ -439,10 +434,6 @@ function CodeStakeOverlay() {
                 ))}
               </div>
             )}
-
-            <p className="text-[11px] font-bold text-black/75 mb-3 bg-gray-50 p-2 border-2 border-black">
-              Target advancing. Keep solving to complete your challenge.
-            </p>
 
             <button
               onClick={() => setPopupMsg(null)}
@@ -455,7 +446,7 @@ function CodeStakeOverlay() {
       )}
       {popupMsg && popupMsg.type === 'fail' && (
         <div className="fixed bottom-6 right-6 z-[999999] animate-in slide-in-from-bottom-5 fade-in duration-300 font-sans">
-          <div className="nb-box p-4 w-80 text-left relative overflow-hidden border-4 border-black shadow-[6px_6px_0_0_#000] bg-white">
+          <div className="nb-box p-4 w-88 max-w-sm text-left relative overflow-hidden border-4 border-black shadow-[6px_6px_0_0_#000] bg-white">
             <div className="absolute top-0 left-0 w-full h-2 bg-[#ff3333] border-b-4 border-black" />
             <div className="flex justify-between items-center mt-2 mb-2">
               <h3 className="font-black text-lg uppercase tracking-wider text-white bg-[#ff3333] px-2 py-0.5 border-2 border-black shadow-[2px_2px_0_0_#000]">
@@ -468,9 +459,20 @@ function CodeStakeOverlay() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
             </div>
-            <p className="text-xs font-bold text-black/80 mb-4 bg-gray-100 p-2 border-2 border-black">
-              {popupMsg.text}
-            </p>
+            {popupMsg.items && popupMsg.items.length > 0 ? (
+              <div className="mb-3 bg-red-50 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
+                {popupMsg.items.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-xs font-bold text-[#ff3333]">
+                    <span>✗</span>
+                    <span className="text-black font-bold">{item.text}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs font-bold text-black/80 mb-3 bg-gray-100 p-2 border-2 border-black">
+                {popupMsg.text}
+              </p>
+            )}
             <button
               onClick={() => setPopupMsg(null)}
               className="nb-btn nb-btn-danger w-full py-2 text-xs font-black uppercase tracking-widest text-white"
