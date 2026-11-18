@@ -449,13 +449,6 @@ export function BettingModal({
                   <p className="text-black font-black uppercase text-2xl leading-snug tracking-tighter bg-[#ff3333] text-white p-3 border-4 border-black shadow-[4px_4px_0_0_#000]">
                     "{debtRoast}"
                   </p>
-                  <button
-                    onClick={() => setDebtRoast(getDebtRoast())}
-                    type="button"
-                    className="mt-2 text-[10px] font-black uppercase tracking-widest text-black/60 hover:text-black underline cursor-pointer"
-                  >
-                    ↻ Another Reality Check
-                  </button>
                 </div>
 
                 <div className="bg-white border-4 border-black p-4 mb-5 flex justify-between items-center text-sm shadow-[4px_4px_0_0_#000]">
