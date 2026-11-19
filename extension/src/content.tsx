@@ -137,6 +137,20 @@ function CodeStakeOverlay() {
         const hasContract = contracts.length > 0;
         setHasActiveContract(hasContract);
 
+        // If any contract was swept as failed, show the DEFEAT popup immediately!
+        if (contractRes?.data?.failed && contractRes.data.failed.length > 0) {
+          window.dispatchEvent(
+            new CustomEvent('CODESTAKE_POPUP', {
+              detail: {
+                type: 'fail',
+                title: 'DEFEAT',
+                text: 'Challenge Expired. Stake Lost.',
+                items: contractRes.data.failed
+              }
+            })
+          );
+        }
+
         // Problem-specific session check
         const isProblemPage = window.location.pathname.startsWith('/problems/');
         const problemSlug = isProblemPage ? window.location.pathname.split("/")[2] : null;
@@ -168,6 +182,8 @@ function CodeStakeOverlay() {
           );
         } else if (hasContract) {
           setUiState(prev => (prev === 'MODAL' || prev === 'HIDDEN') ? prev : 'TRACKING');
+        } else {
+          setUiState(prev => prev === 'TRACKING' ? 'MINIMIZED' : prev);
         }
       }
     );
@@ -175,6 +191,15 @@ function CodeStakeOverlay() {
 
   useEffect(() => {
     syncStateWithBackend();
+  }, [userId]);
+
+  // Periodic background sync: keeps challenge contracts and debt state updated every 5s while solving
+  useEffect(() => {
+    if (!userId) return;
+    const interval = setInterval(() => {
+      syncStateWithBackend();
+    }, 5000);
+    return () => clearInterval(interval);
   }, [userId]);
 
   // Tab Focus & Payment listener: re-sync immediately when returning to tab
@@ -218,7 +243,18 @@ function CodeStakeOverlay() {
   // Listen for Interceptor Verdicts (Win/Loss) — uses refs to avoid stale closures
   useEffect(() => {
     const handlePopup = (e: any) => {
-      setPopupMsg(e.detail);
+      setPopupMsg(prev => {
+        // If an existing popup of the same failure type is open, merge items to show all failures!
+        if (prev && prev.type === e.detail.type && e.detail.items && prev.items) {
+          const existingTexts = new Set(prev.items.map((i: any) => i.text));
+          const newItems = e.detail.items.filter((i: any) => !existingTexts.has(i.text));
+          return {
+            ...e.detail,
+            items: [...prev.items, ...newItems]
+          };
+        }
+        return e.detail;
+      });
     };
     window.addEventListener('CODESTAKE_POPUP', handlePopup);
 
@@ -327,7 +363,7 @@ function CodeStakeOverlay() {
 
   // Use Custom Hooks for Logic
   useAntiCheat(isAntiCheatActive, hasActiveMoneyStake, activeSessionId, userId, setActiveSessionId, setUiState);
-  const timerString = useSessionTimer(uiState, timerEndMs, activeSessionId, userId, setUiState, setActiveSessionId);
+  const timerString = useSessionTimer(uiState, timerEndMs, activeSessionId, userId, setUiState, setActiveSessionId, syncStateWithBackend);
 
   // Render Layout
   return (
@@ -345,7 +381,9 @@ function CodeStakeOverlay() {
           activeSessionId={activeSessionId}
           gauntletContract={activeContracts.find(c => c.mode === 'gauntlet') || null}
           bloodPactContract={activeContracts.find(c => c.mode === 'blood_pact') || null}
+          userId={userId}
           setUiState={setUiState}
+          onSyncState={syncStateWithBackend}
         />
       )}
 
@@ -367,25 +405,30 @@ function CodeStakeOverlay() {
         />
       )}
 
-      {popupMsg && popupMsg.type === 'win' && (
-        <div className="fixed bottom-6 right-6 z-[999999] animate-in slide-in-from-bottom-5 fade-in duration-300 font-sans">
-          <div className="nb-box p-4 w-96 max-w-sm text-left relative overflow-hidden border-4 border-black shadow-[6px_6px_0_0_#000] bg-white">
-            <div className="absolute top-0 left-0 w-full h-2 bg-[#00ff66] border-b-4 border-black" />
-            <div className="flex justify-between items-center mt-2 mb-2">
-              <h3 className="font-black text-sm uppercase tracking-wider text-black bg-[#00ff66] px-2 py-0.5 border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center gap-1.5">
-                <span>🏆</span> {popupMsg.title || "VICTORY"}
-              </h3>
-              <button
-                onClick={() => setPopupMsg(null)}
-                className="text-black hover:bg-[#00ff66] border-2 border-transparent hover:border-black p-0.5 transition"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
-              </button>
-            </div>
+      {/* Popups & Notifications */}
+      {popupMsg && popupMsg.type === 'win' && (() => {
+        const items = popupMsg.items && popupMsg.items.length > 0
+          ? popupMsg.items
+          : [{ type: 'victory', text: popupMsg.text || "Problem Solved." }];
 
-            {popupMsg.items && popupMsg.items.length > 0 && (
+        return (
+          <div className="fixed bottom-6 right-6 z-[999999] animate-in slide-in-from-bottom-5 fade-in duration-300 font-sans">
+            <div className="nb-box p-4 w-96 max-w-sm text-left relative overflow-hidden border-4 border-black shadow-[6px_6px_0_0_#000] bg-white">
+              <div className="absolute top-0 left-0 w-full h-2 bg-[#00ff66] border-b-4 border-black" />
+              <div className="flex justify-between items-center mt-2 mb-2">
+                <h3 className="font-black text-sm uppercase tracking-wider text-black bg-[#00ff66] px-2 py-0.5 border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center gap-1.5">
+                  <span>🏆</span> {popupMsg.title || "VICTORY"}
+                </h3>
+                <button
+                  onClick={() => setPopupMsg(null)}
+                  className="text-black hover:bg-[#00ff66] border-2 border-transparent hover:border-black p-0.5 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+              </div>
+
               <div className="mb-3 bg-emerald-50/60 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
-                {popupMsg.items.map((item, idx) => (
+                {items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs">
                     <span className={item.type === 'victory' ? 'text-emerald-700 font-black' : 'text-blue-600 font-black'}>
                       {item.type === 'victory' ? '★' : '•'}
@@ -396,92 +439,99 @@ function CodeStakeOverlay() {
                   </div>
                 ))}
               </div>
-            )}
 
-            <button
-              onClick={() => setPopupMsg(null)}
-              className="nb-btn nb-btn-primary w-full py-2 text-xs font-black uppercase tracking-widest text-black"
-            >
-              CLAIM GLORY
-            </button>
-          </div>
-        </div>
-      )}
-
-      {popupMsg && popupMsg.type === 'progress' && (
-        <div className="fixed bottom-6 right-6 z-[999999] animate-in slide-in-from-bottom-5 fade-in duration-300 font-sans">
-          <div className="nb-box p-4 w-96 max-w-sm text-left relative overflow-hidden border-4 border-black shadow-[6px_6px_0_0_#000] bg-white">
-            <div className="absolute top-0 left-0 w-full h-2 bg-[#ffcc00] border-b-4 border-black" />
-            <div className="flex justify-between items-center mt-2 mb-2">
-              <h3 className="font-black text-sm uppercase tracking-wider text-black bg-[#ffcc00] px-2 py-0.5 border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center gap-1.5">
-                <span>📈</span> {popupMsg.title || "CHALLENGE PROGRESS"}
-              </h3>
               <button
                 onClick={() => setPopupMsg(null)}
-                className="text-black hover:bg-[#ffcc00] border-2 border-transparent hover:border-black p-0.5 transition"
+                className="nb-btn nb-btn-primary w-full py-2 text-xs font-black uppercase tracking-widest text-black"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+                CLAIM GLORY
               </button>
             </div>
+          </div>
+        );
+      })()}
 
-            {popupMsg.items && popupMsg.items.length > 0 && (
+      {popupMsg && popupMsg.type === 'progress' && (() => {
+        const items = popupMsg.items && popupMsg.items.length > 0
+          ? popupMsg.items
+          : [{ type: 'progress', text: popupMsg.text || "Target advancing." }];
+
+        return (
+          <div className="fixed bottom-6 right-6 z-[999999] animate-in slide-in-from-bottom-5 fade-in duration-300 font-sans">
+            <div className="nb-box p-4 w-96 max-w-sm text-left relative overflow-hidden border-4 border-black shadow-[6px_6px_0_0_#000] bg-white">
+              <div className="absolute top-0 left-0 w-full h-2 bg-[#ffcc00] border-b-4 border-black" />
+              <div className="flex justify-between items-center mt-2 mb-2">
+                <h3 className="font-black text-sm uppercase tracking-wider text-black bg-[#ffcc00] px-2 py-0.5 border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center gap-1.5">
+                  <span>📈</span> {popupMsg.title || "CHALLENGE PROGRESS"}
+                </h3>
+                <button
+                  onClick={() => setPopupMsg(null)}
+                  className="text-black hover:bg-[#ffcc00] border-2 border-transparent hover:border-black p-0.5 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+              </div>
+
               <div className="mb-3 bg-amber-50/60 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
-                {popupMsg.items.map((item, idx) => (
+                {items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs font-bold text-black">
                     <span className="text-amber-600 font-black">✦</span>
                     <span>{item.text}</span>
                   </div>
                 ))}
               </div>
-            )}
 
-            <button
-              onClick={() => setPopupMsg(null)}
-              className="nb-btn w-full py-2 text-xs font-black uppercase tracking-widest text-black bg-[#ffcc00] hover:bg-[#e6b800]"
-            >
-              CONTINUE SOLVING
-            </button>
-          </div>
-        </div>
-      )}
-      {popupMsg && popupMsg.type === 'fail' && (
-        <div className="fixed bottom-6 right-6 z-[999999] animate-in slide-in-from-bottom-5 fade-in duration-300 font-sans">
-          <div className="nb-box p-4 w-88 max-w-sm text-left relative overflow-hidden border-4 border-black shadow-[6px_6px_0_0_#000] bg-white">
-            <div className="absolute top-0 left-0 w-full h-2 bg-[#ff3333] border-b-4 border-black" />
-            <div className="flex justify-between items-center mt-2 mb-2">
-              <h3 className="font-black text-lg uppercase tracking-wider text-white bg-[#ff3333] px-2 py-0.5 border-2 border-black shadow-[2px_2px_0_0_#000]">
-                DEFEAT
-              </h3>
               <button
                 onClick={() => setPopupMsg(null)}
-                className="text-black hover:bg-[#ff3333] border-2 border-transparent hover:border-black p-0.5 transition"
+                className="nb-btn w-full py-2 text-xs font-black uppercase tracking-widest text-black bg-[#ffcc00] hover:bg-[#e6b800]"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+                CONTINUE SOLVING
               </button>
             </div>
-            {popupMsg.items && popupMsg.items.length > 0 ? (
+          </div>
+        );
+      })()}
+
+      {popupMsg && popupMsg.type === 'fail' && (() => {
+        const items = popupMsg.items && popupMsg.items.length > 0
+          ? popupMsg.items
+          : [{ type: 'defeat', text: popupMsg.text || "Timer Expired. Stake Lost." }];
+
+        return (
+          <div className="fixed bottom-6 right-6 z-[999999] animate-in slide-in-from-bottom-5 fade-in duration-300 font-sans">
+            <div className="nb-box p-4 w-88 max-w-sm text-left relative overflow-hidden border-4 border-black shadow-[6px_6px_0_0_#000] bg-white">
+              <div className="absolute top-0 left-0 w-full h-2 bg-[#ff3333] border-b-4 border-black" />
+              <div className="flex justify-between items-center mt-2 mb-2">
+                <h3 className="font-black text-lg uppercase tracking-wider text-white bg-[#ff3333] px-2 py-0.5 border-2 border-black shadow-[2px_2px_0_0_#000]">
+                  {popupMsg.title || "DEFEAT"}
+                </h3>
+                <button
+                  onClick={() => setPopupMsg(null)}
+                  className="text-black hover:bg-[#ff3333] border-2 border-transparent hover:border-black p-0.5 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+              </div>
+
               <div className="mb-3 bg-red-50 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
-                {popupMsg.items.map((item, idx) => (
+                {items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs font-bold text-[#ff3333]">
                     <span>✗</span>
                     <span className="text-black font-bold">{item.text}</span>
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-xs font-bold text-black/80 mb-3 bg-gray-100 p-2 border-2 border-black">
-                {popupMsg.text}
-              </p>
-            )}
-            <button
-              onClick={() => setPopupMsg(null)}
-              className="nb-btn nb-btn-danger w-full py-2 text-xs font-black uppercase tracking-widest text-white"
-            >
-              DISMISS
-            </button>
+
+              <button
+                onClick={() => setPopupMsg(null)}
+                className="nb-btn nb-btn-danger w-full py-2 text-xs font-black uppercase tracking-widest text-white"
+              >
+                DISMISS
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {popupMsg && popupMsg.type === 'warning' && (
         <div className="fixed bottom-6 right-6 z-[999999] animate-in slide-in-from-bottom-5 fade-in duration-300 font-sans">

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.app.json --noEmit && vite build",
+    "build": "tsc -p tsconfig.app.json --noEmit && vite build --mode development",
+    "build:prod": "tsc -p tsconfig.app.json --noEmit && vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview"
   },

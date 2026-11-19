@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
-import { internalSweepExpiredSessions, internalSweepExpiredContracts } from "@/lib/internalStake";
+import { internalSweepExpiredSessions, internalSweepExpiredContractsWithDetails } from "@/lib/internalStake";
 import { getLocalMidnightUTC } from "@/lib/timezone";
 
 export const dynamic = 'force-dynamic';
@@ -26,9 +26,21 @@ export async function GET(request: Request) {
 
     // Lazy evaluation sweep for all expired sessions and contracts
     await internalSweepExpiredSessions(userId);
-    const activeContracts = await internalSweepExpiredContracts(userId);
+    const { activeContracts, newlyFailedContracts } = await internalSweepExpiredContractsWithDetails(userId);
 
-    return NextResponse.json({ contracts: activeContracts }, { status: 200, headers: corsHeaders });
+    const failedItems = newlyFailedContracts.map(fc => {
+      const title = fc.mode === 'blood_pact' ? 'Blood Pact' : 'Gauntlet';
+      return {
+        type: 'defeat',
+        mode: fc.mode,
+        text: `${title} Expired: $${(fc.penalty_cents / 100).toFixed(2)} debt incurred`
+      };
+    });
+
+    return NextResponse.json({
+      contracts: activeContracts,
+      failed: failedItems
+    }, { status: 200, headers: corsHeaders });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500, headers: corsHeaders });
   }

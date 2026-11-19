@@ -103,6 +103,11 @@ export async function internalSweepExpiredSessions(userId: string) {
 }
 
 export async function internalSweepExpiredContracts(userId: string) {
+  const result = await internalSweepExpiredContractsWithDetails(userId);
+  return result.activeContracts;
+}
+
+export async function internalSweepExpiredContractsWithDetails(userId: string) {
   const adminClient = createSupabaseAdminClient();
 
   const { data: contracts, error } = await adminClient
@@ -111,9 +116,10 @@ export async function internalSweepExpiredContracts(userId: string) {
     .eq('user_id', userId)
     .eq('status', 'active');
 
-  if (error || !contracts || contracts.length === 0) return [];
+  if (error || !contracts || contracts.length === 0) return { activeContracts: [], newlyFailedContracts: [] };
 
   const activeContracts = [];
+  const newlyFailedContracts: Array<{ id: string; mode: string; penalty_cents: number }> = [];
   const now = new Date();
 
   for (const contract of contracts) {
@@ -130,11 +136,17 @@ export async function internalSweepExpiredContracts(userId: string) {
           .update({ status: 'failed' })
           .eq('id', contract.id)
           .eq('status', 'active')
-          .select('id, penalty_cents')
+          .select('id, penalty_cents, mode')
           .maybeSingle();
 
         // If another concurrent request already marked it failed, SKIP! Never incur debt multiple times!
         if (!claimErr && claimedContract) {
+          newlyFailedContracts.push({
+            id: contract.id,
+            mode: contract.mode,
+            penalty_cents: contract.penalty_cents
+          });
+
           await adminClient.rpc('incur_debt', {
             p_user_id: userId,
             p_amount: contract.penalty_cents
@@ -185,10 +197,16 @@ export async function internalSweepExpiredContracts(userId: string) {
                 .update({ status: 'failed' })
                 .eq('id', contract.id)
                 .eq('status', 'active')
-                .select('id, penalty_cents')
+                .select('id, penalty_cents, mode')
                 .maybeSingle();
 
               if (!claimErr && claimedContract) {
+                newlyFailedContracts.push({
+                  id: contract.id,
+                  mode: contract.mode,
+                  penalty_cents: contract.penalty_cents
+                });
+
                 await adminClient.rpc('incur_debt', {
                   p_user_id: userId,
                   p_amount: contract.penalty_cents
@@ -222,7 +240,7 @@ export async function internalSweepExpiredContracts(userId: string) {
     }
   }
 
-  return activeContracts;
+  return { activeContracts, newlyFailedContracts };
 }
 
 export interface ContractResolveItem {

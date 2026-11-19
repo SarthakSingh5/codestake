@@ -5,10 +5,11 @@ interface Props {
   style?: 'digital' | 'verbose';
   className?: string;
   prefix?: string;
+  onExpire?: () => void;
 }
 
-export function LiveCountdownBadge({ expiresAt, style = 'digital', className = '', prefix = '⏱️ ' }: Props) {
-  const { formatted, isExpired } = useLiveTimer(expiresAt, style);
+export function LiveCountdownBadge({ expiresAt, style = 'digital', className = '', prefix = '⏱️ ', onExpire }: Props) {
+  const { formatted, isExpired } = useLiveTimer(expiresAt, style, onExpire);
 
   if (!expiresAt) return null;
 

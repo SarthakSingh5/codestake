@@ -8,7 +8,8 @@ export function useSessionTimer(
   activeSessionId: string | null,
   userId: string | null,
   setUiState: (state: UIState) => void,
-  setActiveSessionId: (id: string | null) => void
+  setActiveSessionId: (id: string | null) => void,
+  onExpired?: () => void
 ) {
   const [timeLeftMs, setTimeLeftMs] = useState<number>(() =>
     timerEndMs ? Math.max(0, timerEndMs - Date.now()) : 0
@@ -39,11 +40,24 @@ export function useSessionTimer(
             },
             (response) => {
               if (response?.data?.success && response.data.resolvedAs === 'lost_expired') {
+                const items = response.data.items && response.data.items.length > 0
+                  ? response.data.items
+                  : [{ type: 'defeat', text: response.data.text || 'Timer Expired. Stake Lost.' }];
+
                 window.dispatchEvent(
-                  new CustomEvent('CODESTAKE_POPUP', { detail: { type: 'fail', text: 'Timer Expired. Stake Lost.' } })
+                  new CustomEvent('CODESTAKE_POPUP', {
+                    detail: {
+                      type: 'fail',
+                      title: response.data.title || 'DEFEAT',
+                      text: response.data.text || 'Timer Expired. Stake Lost.',
+                      items: items,
+                      score: response.data.personaScore
+                    }
+                  })
                 );
                 setActiveSessionId(null);
                 setUiState('MINIMIZED');
+                onExpired?.();
               }
             }
           );
@@ -54,7 +68,7 @@ export function useSessionTimer(
     checkTime();
     const interval = setInterval(checkTime, 1000);
     return () => clearInterval(interval);
-  }, [timerEndMs, activeSessionId, userId, setActiveSessionId, setUiState]);
+  }, [timerEndMs, activeSessionId, userId, setActiveSessionId, setUiState, onExpired]);
 
   if (!timerEndMs || timerEndMs <= 0) return '00:00';
   const totalSeconds = Math.floor(timeLeftMs / 1000);

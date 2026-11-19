@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
-import { internalResolveStakeWin, internalFailStakeSession, internalResolveContracts } from "@/lib/internalStake";
+import {
+  internalResolveStakeWin,
+  internalFailStakeSession,
+  internalResolveContracts,
+  internalSweepExpiredContractsWithDetails
+} from "@/lib/internalStake";
 
 export const dynamic = 'force-dynamic';
 
@@ -27,25 +32,52 @@ export async function POST(request: Request) {
 
     // ── CASE 1: EXPIRED TRIGGER ──────────────────────────────────────────────
     if (verdict === "EXPIRED") {
+      const items: Array<{ type: string; text: string }> = [];
+
+      // 1. Resolve expired session if active
       if (sessionId) {
         const { data: session } = await adminClient.from('stake_sessions').select('*').eq('id', sessionId).single();
         await internalFailStakeSession(sessionId);
-        const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
-        if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
-        return NextResponse.json({
-          success: true,
-          resolvedAs: "lost_expired",
-          title: "DEFEAT",
-          text: "Timer Expired. Stake Lost.",
-          items: [{ type: 'defeat', text: `Time Expired: $${session ? (session.amount_cents / 100).toFixed(2) : '5.00'} debt incurred` }],
-          personaScore: (w?.persona_score || 0) - 10
-        }, { headers: corsHeaders });
+        items.push({
+          type: 'defeat',
+          text: `Time Expired: $${session ? (session.amount_cents / 100).toFixed(2) : '5.00'} debt incurred`
+        });
       }
-      return NextResponse.json({ success: true, resolvedAs: "lost_expired", title: "DEFEAT", text: "Timer Expired. Stake Lost." }, { headers: corsHeaders });
+
+      // 2. Sweep any expired challenge contracts for this user
+      const { newlyFailedContracts } = await internalSweepExpiredContractsWithDetails(userId);
+      for (const fc of newlyFailedContracts) {
+        const modeTitle = fc.mode === 'blood_pact' ? 'Blood Pact' : fc.mode === 'gauntlet' ? 'Gauntlet' : 'Challenge';
+        items.push({
+          type: 'defeat',
+          text: `${modeTitle} Expired: $${(fc.penalty_cents / 100).toFixed(2)} debt incurred`
+        });
+      }
+
+      if (items.length === 0) {
+        items.push({
+          type: 'defeat',
+          text: 'Timer Expired. Stake Lost.'
+        });
+      }
+
+      const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
+      if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
+
+      return NextResponse.json({
+        success: true,
+        resolvedAs: "lost_expired",
+        title: "DEFEAT",
+        text: "Timer Expired. Stake Lost.",
+        items,
+        personaScore: (w?.persona_score || 0) - 10
+      }, { headers: corsHeaders });
     }
 
     // ── CASE 2: NON-ACCEPTED VERDICT (Wrong Answer, TLE, etc.) ───────────────
     if (verdict !== "Accepted") {
+      const items: Array<{ type: string; text: string }> = [];
+
       if (sessionId) {
         const { data: session } = await adminClient
           .from("stake_sessions")
@@ -57,19 +89,37 @@ export async function POST(request: Request) {
 
         if (session && session.mode === "one_shot") {
           await internalFailStakeSession(session.id);
-          const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
-          if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
-          return NextResponse.json({
-            success: true,
-            resolvedAs: "lost_one_shot",
-            title: "DEFEAT",
-            text: "Wrong Answer. One-Shot Stake Lost.",
-            items: [{ type: 'defeat', text: `One-Shot Stake Lost: $${(session.amount_cents / 100).toFixed(2)} debt incurred` }],
-            personaScore: (w?.persona_score || 0) - 10
-          }, { headers: corsHeaders });
+          items.push({
+            type: 'defeat',
+            text: `One-Shot Stake Lost: $${(session.amount_cents / 100).toFixed(2)} debt incurred`
+          });
         }
       }
-      // If time_crunch or no session, just continue silently (do not interrupt user)
+
+      // Also sweep any expired challenge contracts for this user!
+      const { newlyFailedContracts } = await internalSweepExpiredContractsWithDetails(userId);
+      for (const fc of newlyFailedContracts) {
+        const modeTitle = fc.mode === 'blood_pact' ? 'Blood Pact' : fc.mode === 'gauntlet' ? 'Gauntlet' : 'Challenge';
+        items.push({
+          type: 'defeat',
+          text: `${modeTitle} Expired: $${(fc.penalty_cents / 100).toFixed(2)} debt incurred`
+        });
+      }
+
+      if (items.length > 0) {
+        const { data: w } = await adminClient.from('wallets').select('persona_score').eq('user_id', userId).single();
+        if (w) await adminClient.from('wallets').update({ persona_score: (w.persona_score || 0) - 10 }).eq('user_id', userId);
+        return NextResponse.json({
+          success: true,
+          resolvedAs: "lost_expired",
+          title: "DEFEAT",
+          text: "Challenge Expired. Stake Lost.",
+          items,
+          personaScore: (w?.persona_score || 0) - 10
+        }, { headers: corsHeaders });
+      }
+
+      // If time_crunch or no session, and no contracts expired, continue silently
       return NextResponse.json({ success: true, resolvedAs: "none" }, { headers: corsHeaders });
     }
 

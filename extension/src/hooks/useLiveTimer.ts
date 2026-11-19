@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function formatTimeRemaining(expiresAt: string | number | null | undefined, style: 'digital' | 'verbose' = 'digital') {
   if (!expiresAt) {
@@ -36,14 +36,33 @@ export function formatTimeRemaining(expiresAt: string | number | null | undefine
   return { formatted: `${pad(minutes)}:${pad(seconds)}`, isExpired: false, totalSeconds };
 }
 
-export function useLiveTimer(expiresAt: string | number | null | undefined, style: 'digital' | 'verbose' = 'digital') {
+export function useLiveTimer(
+  expiresAt: string | number | null | undefined,
+  style: 'digital' | 'verbose' = 'digital',
+  onExpire?: () => void
+) {
   const [time, setTime] = useState(() => formatTimeRemaining(expiresAt, style));
+  const hasFiredRef = useRef(false);
+  const onExpireRef = useRef(onExpire);
+
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
+
+  useEffect(() => {
+    hasFiredRef.current = false;
+  }, [expiresAt]);
 
   useEffect(() => {
     if (!expiresAt) return;
 
     const update = () => {
-      setTime(formatTimeRemaining(expiresAt, style));
+      const res = formatTimeRemaining(expiresAt, style);
+      setTime(res);
+      if (res.isExpired && !hasFiredRef.current) {
+        hasFiredRef.current = true;
+        onExpireRef.current?.();
+      }
     };
 
     update();

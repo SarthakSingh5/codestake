@@ -3,6 +3,7 @@
 export const PRODUCTION_URL = 'https://codestake-zeta.vercel.app';
 export const LOCAL_URL = 'http://localhost:3000';
 
-export const API_BASE_URL =
-  import.meta.env.VITE_API_URL || (import.meta.env.PROD ? PRODUCTION_URL : LOCAL_URL);
+// Defaults to LOCAL_URL (http://localhost:3000) for instant local iteration.
+// Override with VITE_API_URL when packaging for Chrome Web Store.
+export const API_BASE_URL = import.meta.env.VITE_API_URL || LOCAL_URL;
 

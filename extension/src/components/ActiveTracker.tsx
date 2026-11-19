@@ -1,5 +1,6 @@
 import type { UIState, ChallengeContract } from '../types';
 import { LiveCountdownBadge } from './LiveCountdownBadge';
+import { API_BASE_URL } from '../config';
 
 interface Props {
   activeSessionMode?: string;
@@ -7,7 +8,9 @@ interface Props {
   activeSessionId?: string | null;
   gauntletContract?: ChallengeContract | null;
   bloodPactContract?: ChallengeContract | null;
+  userId?: string | null;
   setUiState: (state: UIState) => void;
+  onSyncState?: () => void;
 }
 
 export function ActiveTracker({
@@ -16,7 +19,9 @@ export function ActiveTracker({
   activeSessionId,
   gauntletContract,
   bloodPactContract,
+  userId,
   setUiState,
+  onSyncState,
 }: Props) {
   const hasQuickPlay = Boolean(activeSessionId);
   const hasGauntlet = Boolean(gauntletContract);
@@ -26,6 +31,10 @@ export function ActiveTracker({
   if (!hasQuickPlay && !hasGauntlet && !hasBloodPact) {
     return null;
   }
+
+  const handleContractExpire = () => {
+    onSyncState?.();
+  };
 
   return (
     <div className="fixed bottom-4 right-4 z-[99999] font-sans animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -61,6 +70,7 @@ export function ActiveTracker({
               style="digital"
               prefix="⏱️ "
               className="text-xs text-[#ff3333] font-black"
+              onExpire={handleContractExpire}
             />
             <span className="text-[9px] font-mono font-black bg-black text-white px-1 py-0.2">
               {gauntletContract.total_problems_solved || 0}/{gauntletContract.target_problems_per_day} SOLVED
@@ -89,6 +99,7 @@ export function ActiveTracker({
                   style="digital"
                   prefix="⏰ "
                   className="text-xs text-[#ff3333] font-black"
+                  onExpire={handleContractExpire}
                 />
                 <span className="text-[9px] font-mono font-black bg-black text-white px-1 py-0.2">
                   {bloodPactContract.problems_solved_today || 0}/{bloodPactContract.target_problems_per_day}
