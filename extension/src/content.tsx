@@ -59,14 +59,27 @@ function CodeStakeOverlay() {
     };
   }, [currentPath]);
 
-  // Whenever navigating to a problem and anti-cheat is active, enforce clean boilerplate!
+  // Track problem slug to enforce clean boilerplate ONCE on initial entry to a NEW problem
+  const lastEnforcedSlugRef = useRef<string | null>(null);
+
   useEffect(() => {
     const isProblemPage = window.location.pathname.startsWith('/problems/');
     const problemSlug = isProblemPage ? window.location.pathname.split("/")[2] : null;
 
-    if (problemSlug && isAntiCheatActive) {
-      console.log('[CodeStake] Enforcing clean boilerplate for problem:', problemSlug);
-      window.postMessage({ type: 'CODESTAKE_ENFORCE_BOILERPLATE', problemSlug }, '*');
+    if (!problemSlug) {
+      // User is outside problem pages (e.g. /problemset/, /contest/)
+      lastEnforcedSlugRef.current = null;
+      return;
+    }
+
+    // Only enforce if entering a DIFFERENT problem slug while anti-cheat is active
+    if (isAntiCheatActive && problemSlug !== lastEnforcedSlugRef.current) {
+      lastEnforcedSlugRef.current = problemSlug;
+      console.log('[CodeStake] Enforcing clean boilerplate on new problem entry:', problemSlug);
+      // 400ms delay to let LeetCode finish mounting Monaco and its auto-saved code so we overwrite it
+      setTimeout(() => {
+        window.postMessage({ type: 'CODESTAKE_ENFORCE_BOILERPLATE', problemSlug }, '*');
+      }, 400);
     }
   }, [currentPath, isAntiCheatActive]);
 
@@ -427,7 +440,7 @@ function CodeStakeOverlay() {
                 </button>
               </div>
 
-              <div className="mb-3 bg-emerald-50/60 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
+              <div className="bg-emerald-50/60 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
                 {items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs">
                     <span className={item.type === 'victory' ? 'text-emerald-700 font-black' : 'text-blue-600 font-black'}>
@@ -439,13 +452,6 @@ function CodeStakeOverlay() {
                   </div>
                 ))}
               </div>
-
-              <button
-                onClick={() => setPopupMsg(null)}
-                className="nb-btn nb-btn-primary w-full py-2 text-xs font-black uppercase tracking-widest text-black"
-              >
-                CLAIM GLORY
-              </button>
             </div>
           </div>
         );
@@ -472,7 +478,7 @@ function CodeStakeOverlay() {
                 </button>
               </div>
 
-              <div className="mb-3 bg-amber-50/60 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
+              <div className="bg-amber-50/60 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
                 {items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs font-bold text-black">
                     <span className="text-amber-600 font-black">✦</span>
@@ -480,13 +486,6 @@ function CodeStakeOverlay() {
                   </div>
                 ))}
               </div>
-
-              <button
-                onClick={() => setPopupMsg(null)}
-                className="nb-btn w-full py-2 text-xs font-black uppercase tracking-widest text-black bg-[#ffcc00] hover:bg-[#e6b800]"
-              >
-                CONTINUE SOLVING
-              </button>
             </div>
           </div>
         );
@@ -513,7 +512,7 @@ function CodeStakeOverlay() {
                 </button>
               </div>
 
-              <div className="mb-3 bg-red-50 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
+              <div className="bg-red-50 p-2.5 border-2 border-black space-y-1.5 shadow-[2px_2px_0_0_#000]">
                 {items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs font-bold text-[#ff3333]">
                     <span>✗</span>
@@ -521,13 +520,6 @@ function CodeStakeOverlay() {
                   </div>
                 ))}
               </div>
-
-              <button
-                onClick={() => setPopupMsg(null)}
-                className="nb-btn nb-btn-danger w-full py-2 text-xs font-black uppercase tracking-widest text-white"
-              >
-                DISMISS
-              </button>
             </div>
           </div>
         );
@@ -548,15 +540,9 @@ function CodeStakeOverlay() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
             </div>
-            <p className="text-xs font-bold text-black/90 mb-4 bg-amber-50 p-2.5 border-2 border-black leading-relaxed">
+            <p className="text-xs font-bold text-black/90 bg-amber-50 p-2.5 border-2 border-black leading-relaxed">
               {popupMsg.text}
             </p>
-            <button
-              onClick={() => setPopupMsg(null)}
-              className="nb-btn w-full py-2 text-xs font-black uppercase tracking-widest text-black bg-[#ffaa00] hover:bg-[#e69900]"
-            >
-              UNDERSTOOD
-            </button>
           </div>
         </div>
       )}

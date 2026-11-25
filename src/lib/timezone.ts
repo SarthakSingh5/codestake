@@ -67,3 +67,54 @@ export function getLocalMidnightUTC(
   return new Date(utcGuess.getTime() + diffMs);
 }
 
+/**
+ * Calculates the exact UTC Date corresponding to 00:00:00.000 AM (Start of Day)
+ * in the user's local IANA timezone, offset by daysToAdd days from today.
+ */
+export function getLocalStartOfDayUTC(
+  timeZone: string = 'UTC',
+  daysToAdd: number = 0
+): Date {
+  const tz = timeZone || 'UTC';
+  const now = new Date();
+
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+
+  const parts = dtf.formatToParts(now);
+  const m: Record<string, string> = {};
+  parts.forEach((p) => (m[p.type] = p.value));
+
+  const targetYear = parseInt(m.year || '2026', 10);
+  const targetMonth = parseInt(m.month || '1', 10) - 1; // 0-indexed
+  const targetDay = parseInt(m.day || '1', 10) + daysToAdd;
+
+  const utcGuess = new Date(Date.UTC(targetYear, targetMonth, targetDay, 0, 0, 0, 0));
+  const guessParts = dtf.formatToParts(utcGuess);
+  const gm: Record<string, string> = {};
+  guessParts.forEach((p) => (gm[p.type] = p.value));
+
+  const guessLocalTime = Date.UTC(
+    parseInt(gm.year || '2026', 10),
+    parseInt(gm.month || '1', 10) - 1,
+    parseInt(gm.day || '1', 10),
+    parseInt(gm.hour || '0', 10),
+    parseInt(gm.minute || '0', 10),
+    parseInt(gm.second || '0', 10)
+  );
+
+  const desiredLocalTime = Date.UTC(targetYear, targetMonth, targetDay, 0, 0, 0);
+  const diffMs = desiredLocalTime - guessLocalTime;
+
+  return new Date(utcGuess.getTime() + diffMs);
+}
+
+

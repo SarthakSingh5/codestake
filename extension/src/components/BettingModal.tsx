@@ -56,7 +56,7 @@ export function BettingModal({
 
   // Global State
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [debtRoast, setDebtRoast] = useState<string>(() => getDebtRoast());
+  const [debtRoast] = useState<string>(() => getDebtRoast());
   const [isBanned, setIsBanned] = useState<boolean>(false);
   const [activeContracts, setActiveContracts] = useState<ChallengeContract[]>([]);
   const [isCommitting, setIsCommitting] = useState(false);
@@ -64,7 +64,7 @@ export function BettingModal({
   // Checkout State
   const [checkoutMode, setCheckoutMode] = useState<'none' | 'awaiting_payment'>('none');
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
-  const [isHonorRestoredFlash, setIsHonorRestoredFlash] = useState(false);
+  const [isDebtPaidFlash, setIsDebtPaidFlash] = useState(false);
 
   // Keep view in sync when entering or clearing debt
   useEffect(() => {
@@ -74,9 +74,9 @@ export function BettingModal({
       }
     } else if (walletBalance !== null && walletBalance >= 0) {
       if (view === 'debt') {
-        setIsHonorRestoredFlash(true);
+        setIsDebtPaidFlash(true);
         const timer = setTimeout(() => {
-          setIsHonorRestoredFlash(false);
+          setIsDebtPaidFlash(false);
           setView('main');
           setCheckoutMode('none');
         }, 1800);
@@ -370,7 +370,7 @@ export function BettingModal({
                     : 'text-black hover:bg-black/5'
                 }`}
               >
-                💀 Restore Honor
+                💀 Pay Debt
               </button>
             ) : (
               <button
@@ -401,10 +401,10 @@ export function BettingModal({
           </div>
         )}
 
-        {/* ── VIEW: DEBT / RESTORE HONOR ── */}
+        {/* ── VIEW: DEBT / PAY DEBT ── */}
         {view === 'debt' && (
           <div>
-            {isHonorRestoredFlash ? (
+            {isDebtPaidFlash ? (
               <div className="p-8 border-4 border-black bg-[#00ff66] text-center mb-6 mt-4 shadow-[6px_6px_0_0_#000] animate-in zoom-in-95 duration-200">
                 <div className="w-16 h-16 bg-white border-4 border-black flex items-center justify-center mx-auto mb-4 shadow-[3px_3px_0_0_#000]">
                   <svg className="w-10 h-10 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
@@ -412,7 +412,7 @@ export function BettingModal({
                   </svg>
                 </div>
                 <h2 className="text-2xl font-black uppercase tracking-tight text-black mb-1">
-                  HONOR RESTORED!
+                  DEBT CLEARED!
                 </h2>
                 <p className="text-xs font-bold uppercase tracking-widest text-black">
                   Debt cleared. Arena unlocked.
@@ -467,7 +467,7 @@ export function BettingModal({
                       <span>OPENING STRIPE...</span>
                     </>
                   ) : (
-                    <span>RESTORE HONOR (STRIPE)</span>
+                    <span>PAY DEBT (STRIPE)</span>
                   )}
                 </button>
 
@@ -483,30 +483,31 @@ export function BettingModal({
                 </div>
 
                 {/* Interview Strict Mode Toggle while in Debt */}
-                <div className="bg-gray-50 border-2 border-black p-3 mb-5 text-left shadow-[2px_2px_0_0_#000]">
+                <div className="p-3 border-4 border-black bg-white shadow-[4px_4px_0_0_#000] text-left mb-5">
                   <div className="flex justify-between items-center gap-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-1.5 mb-0.5">
+                      <div className="flex items-center gap-2 mb-0.5">
                         <span className="font-black text-xs uppercase tracking-wider text-black">
-                          ⚡ Strict Mode
+                          Strict Mode
                         </span>
                         {isDebtStrictLocked ? (
                           <span className="text-[9px] font-black uppercase bg-[#ff3333] text-white px-1.5 py-0.5 border-2 border-black shadow-[1px_1px_0_0_#000]">
                             LOCKED ON 🔒
                           </span>
                         ) : (
-                          <span className={`text-[8px] font-black uppercase px-1 py-0.2 border border-black ${strictMode ? 'bg-[#00ff66] text-black' : 'bg-gray-200 text-black/60'}`}>
-                            {strictMode ? 'ACTIVE' : 'OFF'}
+                          <span className="text-[9px] font-black uppercase bg-[#00ff66] text-black px-1.5 py-0.5 border-2 border-black shadow-[1px_1px_0_0_#000]">
+                            FREE
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] font-bold text-black/70 leading-tight">
+                      <p className="text-[10px] font-bold text-black/70 leading-snug">
                         {isDebtStrictLocked
-                          ? "Enforced across all problems because another challenge is still active."
-                          : "Free interview practice (no paste, clean boilerplate) allowed while debt is active."}
+                          ? "Enforced across all problems during your active challenge."
+                          : "Get full interview experience with anti-cheat system"}
                       </p>
                     </div>
 
+                    {/* Neo-brutalism Toggle Switch */}
                     <button
                       type="button"
                       onClick={() => {
@@ -518,13 +519,13 @@ export function BettingModal({
                         }
                       }}
                       disabled={isDebtStrictLocked}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer border-2 border-black transition-colors duration-200 ease-in-out shadow-[1px_1px_0_0_#000] ${
+                      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer border-2 border-black transition-colors duration-200 ease-in-out shadow-[2px_2px_0_0_#000] ${
                         isDebtStrictLocked || strictMode ? 'bg-[#00ff66]' : 'bg-gray-200'
-                      } ${isDebtStrictLocked ? 'cursor-not-allowed opacity-90' : 'hover:-translate-y-0.5'}`}
+                      } ${isDebtStrictLocked ? 'cursor-not-allowed opacity-90' : 'hover:-translate-y-0.5 active:translate-y-0'}`}
                       title={isDebtStrictLocked ? "Strict Mode is locked ON while another challenge is active" : "Toggle Interview Strict Mode"}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-4 w-4 transform border border-black bg-white shadow-[1px_1px_0_0_#000] transition duration-200 ease-in-out mt-0.5 ${
+                        className={`pointer-events-none inline-block h-5 w-5 transform border-2 border-black bg-white shadow-[1px_1px_0_0_#000] transition duration-200 ease-in-out mt-0.5 ${
                           isDebtStrictLocked || strictMode ? 'translate-x-5' : 'translate-x-0.5'
                         }`}
                       />
@@ -627,7 +628,7 @@ export function BettingModal({
                           <div className="flex items-center gap-1.5">
                             <span className="bg-black text-white px-1.5 py-0.5">{session.problems.platform}</span>
                             <span className="bg-[#ffcc00] border border-black px-1.5 py-0.5">
-                              {session.mode === 'one_shot' ? 'One Shot' : 'Time Crunch'}
+                              {session.mode === 'one_shot' ? '1-Submit' : 'Time Crunch'}
                             </span>
                           </div>
                           {session.mode === 'time_crunch' && session.expires_at ? (
@@ -664,7 +665,7 @@ export function BettingModal({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="font-black text-xs uppercase tracking-wider text-black">
-                      ⚡ Interview Strict Mode
+                      Strict Mode
                     </span>
                     {hasActiveMoneyStake ? (
                       <span className="text-[9px] font-black uppercase bg-[#ff3333] text-white px-1.5 py-0.5 border-2 border-black shadow-[1px_1px_0_0_#000]">
@@ -679,7 +680,7 @@ export function BettingModal({
                   <p className="text-[10px] font-bold text-black/70 leading-snug">
                     {hasActiveMoneyStake
                       ? "Enforced across all problems during your active challenge."
-                      : "Zero stakes. Blocks paste & resets boilerplate across all problems."}
+                      : "Get full interview experience with anti-cheat system"}
                   </p>
                 </div>
 
@@ -720,19 +721,19 @@ export function BettingModal({
                 <div className={`font-black mb-1 uppercase text-lg ${(window.location.pathname.includes("/problems/") && window.location.pathname.split("/")[2]) ? "text-black group-hover:text-[#00ff66]" : "text-gray-500"}`}>
                   Quick Play {(window.location.pathname.includes("/problems/") && window.location.pathname.split("/")[2]) ? "" : "(Nav to problem first)"}
                 </div>
-                <div className="text-xs font-bold text-black/70">Micro-stake on a single problem. Fast and brutal.</div>
+                <div className="text-xs font-bold text-black/70">Stake on a single problem. Fast and brutal.</div>
               </button>
 
               {!activeContracts.find(c => c.mode === 'blood_pact') && (
                 <button onClick={() => setView('blood_pact')} className="bg-[#ff3333] border-4 border-black text-black p-4 transition text-left group hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] shadow-[4px_4px_0_0_#000]">
                   <div className="font-black text-white text-xl uppercase mb-1 drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">The Blood Pact</div>
-                  <div className="text-xs font-bold bg-white px-2 py-1 border-2 border-black inline-block mt-1">Multi-day streak contract. Miss a day, owe a massive debt.</div>
+                  <div className="text-xs font-bold bg-white px-2 py-1 border-2 border-black inline-block mt-1">Multi-day streak contract. Miss a day, owe a debt.</div>
                 </button>
               )}
               {!activeContracts.find(c => c.mode === 'gauntlet') && (
                 <button onClick={() => setView('gauntlet')} className="bg-[#ffcc00] border-4 border-black text-black p-4 transition text-left group hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] shadow-[4px_4px_0_0_#000]">
                   <div className="font-black text-black text-xl uppercase mb-1">The Gauntlet</div>
-                  <div className="text-xs font-bold bg-white px-2 py-1 border-2 border-black inline-block mt-1">Endurance mode. 5 problems back-to-back under a strict timer.</div>
+                  <div className="text-xs font-bold bg-white px-2 py-1 border-2 border-black inline-block mt-1">Endurance mode. Multiple problems back-to-back under a strict timer.</div>
                 </button>
               )}
             </div>
@@ -771,7 +772,7 @@ export function BettingModal({
                 <span className="text-black font-black uppercase tracking-widest text-xs">Mode:</span>
                 <div className="flex gap-2 items-center">
                   <button onClick={() => setStakeMode("time_crunch")} className={`px-2 py-1 font-bold text-xs uppercase border-2 transition ${stakeMode === "time_crunch" ? 'bg-black text-white border-black' : 'bg-white text-black border-black hover:bg-gray-100'}`}>⏱️ Time Crunch</button>
-                  <button onClick={() => setStakeMode("one_shot")} className={`px-2 py-1 font-bold text-xs uppercase border-2 transition ${stakeMode === "one_shot" ? 'bg-black text-white border-black' : 'bg-white text-black border-black hover:bg-gray-100'}`}>🎯 One Shot</button>
+                  <button onClick={() => setStakeMode("one_shot")} className={`px-2 py-1 font-bold text-xs uppercase border-2 transition ${stakeMode === "one_shot" ? 'bg-black text-white border-black' : 'bg-white text-black border-black hover:bg-gray-100'}`}>🎯 1-Submit</button>
                 </div>
               </div>
               {stakeMode === "time_crunch" && (
@@ -796,7 +797,7 @@ export function BettingModal({
                           step="1"
                           value={timerDuration}
                           onChange={(e) => setTimerDuration(Math.max(1, Math.floor(Number(e.target.value))))}
-                          className="bg-transparent text-black font-mono font-black outline-none w-12 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="bg-transparent text-black font-mono font-black outline-none w-14 min-w-[2.5rem] text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                         <span className="text-black font-bold text-xs select-none ml-1">m</span>
                       </div>
@@ -817,7 +818,7 @@ export function BettingModal({
         {view === 'blood_pact' && (
           <div className="text-center">
             <h2 className="text-3xl font-black text-white mt-6 mb-2 uppercase tracking-tighter inline-block bg-[#ff3333] px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">The Blood Pact</h2>
-            <p className="text-xs font-bold text-black mb-6 bg-[#ffcc00] px-2 py-1 inline-block border-2 border-black">If you miss your quota before midnight, you incur a massive debt.</p>
+            <p className="text-xs font-bold text-black mb-6 bg-[#ffcc00] px-2 py-1 inline-block border-2 border-black">Starts next day • First quota due tomorrow at midnight.</p>
             <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] p-4 mb-6 text-left space-y-4">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-black font-black uppercase tracking-widest text-xs">Length:</span>
@@ -839,7 +840,7 @@ export function BettingModal({
                         max="365"
                         value={pactDays}
                         onChange={(e) => setPactDays(Math.max(1, Number(e.target.value)))}
-                        className="bg-transparent text-black font-mono font-black outline-none w-12 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="bg-transparent text-black font-mono font-black outline-none w-14 min-w-[2.5rem] text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                       <span className="text-black font-bold text-xs select-none ml-1">d</span>
                     </div>
@@ -851,7 +852,7 @@ export function BettingModal({
                 <span className="text-black font-black uppercase tracking-widest text-xs">Daily Quota:</span>
                 <div className="flex items-center gap-3 bg-white border-2 border-black p-1 shadow-[2px_2px_0_0_#000]">
                   <button onClick={() => setPactProblems(Math.max(1, pactProblems - 1))} className="w-6 h-6 bg-black hover:bg-gray-800 text-white font-bold flex items-center justify-center">-</button>
-                  <span className="text-black font-mono font-black w-4 text-center">{pactProblems}</span>
+                  <span className="text-black font-mono font-black inline-block min-w-[32px] px-1 text-center whitespace-nowrap tabular-nums">{pactProblems}</span>
                   <button onClick={() => setPactProblems(Math.min(10, pactProblems + 1))} className="w-6 h-6 bg-black hover:bg-gray-800 text-white font-bold flex items-center justify-center">+</button>
                 </div>
               </div>
@@ -879,21 +880,25 @@ export function BettingModal({
                   </div>
                 </div>
               </div>
+              <div className="pt-2 border-t-2 border-black/10 flex justify-between items-center text-[11px] font-bold text-black/70">
+                <span className="uppercase tracking-wider">FIRST DEADLINE:</span>
+                <span className="font-mono text-black font-black">Tomorrow 11:59 PM (Local)</span>
+              </div>
             </div>
-            <button onClick={() => handleStartContract('blood_pact')} disabled={isCommitting} className="nb-btn nb-btn-danger w-full text-white py-4 mt-4 text-xl">SEAL THE PACT</button>
+            <button onClick={() => handleStartContract('blood_pact')} disabled={isCommitting} className="nb-btn nb-btn-danger w-full text-white py-4 mt-4 text-xl">{isCommitting ? "..." : "SEAL THE PACT"}</button>
           </div>
         )}
 
         {view === 'gauntlet' && (
           <div className="text-center">
             <h2 className="text-3xl font-black text-black mt-6 mb-2 uppercase tracking-tighter inline-block bg-[#ffcc00] px-4 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">The Gauntlet</h2>
-            <p className="text-xs font-bold text-black mb-6 bg-white px-2 py-1 inline-block border-2 border-black">Complete 5 problems back-to-back in under 3 hours. No pauses.</p>
+            <p className="text-xs font-bold text-black mb-6 bg-white px-2 py-1 inline-block border-2 border-black">Complete multiple problems back-to-back under a strict timer. No pauses.</p>
             <div className="bg-white border-4 border-black shadow-[4px_4px_0_0_#000] p-4 mb-6 text-left space-y-4">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-black font-black uppercase tracking-widest text-xs">Target Problems:</span>
                 <div className="flex items-center gap-3 bg-white border-2 border-black p-1 shadow-[2px_2px_0_0_#000]">
                   <button onClick={() => setGauntletProblems(Math.max(1, gauntletProblems - 1))} className="w-6 h-6 bg-black hover:bg-gray-800 text-white font-bold flex items-center justify-center">-</button>
-                  <span className="text-black font-mono font-black w-4 text-center">{gauntletProblems}</span>
+                  <span className="text-black font-mono font-black inline-block min-w-[32px] px-1 text-center whitespace-nowrap tabular-nums">{gauntletProblems}</span>
                   <button onClick={() => setGauntletProblems(Math.min(20, gauntletProblems + 1))} className="w-6 h-6 bg-black hover:bg-gray-800 text-white font-bold flex items-center justify-center">+</button>
                 </div>
               </div>
@@ -955,7 +960,7 @@ export function BettingModal({
                 </div>
               </div>
             </div>
-            <button onClick={() => handleStartContract('gauntlet')} disabled={isCommitting} className="nb-btn nb-btn-warning w-full py-4 mt-4 text-xl">ENTER THE GAUNTLET</button>
+            <button onClick={() => handleStartContract('gauntlet')} disabled={isCommitting} className="nb-btn nb-btn-warning w-full py-4 mt-4 text-xl">{isCommitting ? "..." : "ENTER THE GAUNTLET"}</button>
           </div>
         )}
 

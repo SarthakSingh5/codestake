@@ -13,7 +13,7 @@ export const DEBT_ROASTS: string[] = [
   "The interviewers won't feel sorry for you. Face reality and clear your tab.",
   "Comfort is a slow death. Wake up, settle up, and reclaim your discipline.",
   "A brilliant mind paralyzed by procrastination. Time to pay the price.",
-  "You scrolled, you hesitated, you failed. Honor the consequences.",
+  "You scrolled, you hesitated, you failed. Settle your debt.",
   "Potential without execution is just regret in disguise.",
   "You were given a deadline. You gave up. Own your failure.",
   "Discipline is choosing between what you want now and what you want most.",
@@ -24,12 +24,12 @@ export const DEBT_ROASTS: string[] = [
 export const VICTORY_DISPATCHES: string[] = [
   "Flawless execution. Your discipline is becoming a weapon.",
   "The pact is fulfilled. Consistency is all that matters now.",
-  "You honored your word today. Return tomorrow.",
+  "Goal achieved today. Return tomorrow.",
   "Undeniable proof of your character. Do not let the momentum die.",
   "Logic executed without hesitation. Glory claimed.",
   "You stayed in the fire and conquered the clock. Respect.",
   "One more problem slayed. The compound effect is real.",
-  "Discipline honored. Capital defended.",
+  "Discipline upheld. Capital defended.",
   "Focus under pressure. That is how champions are forged."
 ];
 

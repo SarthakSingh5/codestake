@@ -67,7 +67,7 @@ function EmbedContent() {
         description: `Clear Debt $${(targetAmount / 100).toFixed(2)} USD`,
         order_id: data.orderId,
         handler: async function (response: any) {
-          setStatus("Payment Captured! Verifying signature & restoring honor...");
+          setStatus("Payment Captured! Verifying signature & settling debt...");
           try {
             await fetch("/api/checkout/razorpay/verify", {
               method: "POST",
@@ -165,7 +165,7 @@ function EmbedContent() {
         </div>
 
         <h1 className="text-2xl font-black uppercase tracking-tight mb-2">
-          Restore Honor
+          Pay Debt
         </h1>
 
         <div className="bg-white border-4 border-black p-4 mb-6 flex justify-between items-center text-sm shadow-[4px_4px_0_0_#000]">

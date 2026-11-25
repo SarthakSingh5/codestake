@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
-export default function HonorDebtModal({ debtAmountCents }: { debtAmountCents: number }) {
+export default function PayDebtModal({ debtAmountCents }: { debtAmountCents: number }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export default function HonorDebtModal({ debtAmountCents }: { debtAmountCents: n
         }}
         className="nb-btn nb-btn-danger mt-auto w-full py-4 text-white text-base sm:text-lg tracking-[0.2em] font-black uppercase shadow-[4px_4px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] transition-all"
       >
-        RESTORE HONOR
+        PAY DEBT
       </button>
 
       {mounted && isOpen && createPortal(

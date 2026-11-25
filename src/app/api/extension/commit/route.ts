@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     }
 
     if (!wallet || wallet.balance_cents < 0) {
-      return NextResponse.json({ error: "You have broken the Code. Honor your debt to return to the arena." }, { status: 403, headers: corsHeaders });
+      return NextResponse.json({ error: "You have an unsettled debt. Pay your debt to return to the arena." }, { status: 403, headers: corsHeaders });
     }
 
     // 3. No upfront escrow! The user only pays if they fail.

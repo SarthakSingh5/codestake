@@ -233,7 +233,7 @@ export default async function WalletPage() {
                 ) : (
                   <span className="inline-flex items-center gap-2 bg-[#00ff66] text-black px-3.5 py-1.5 border-4 border-black font-black uppercase text-xs tracking-wider shadow-[3px_3px_0_0_#000]">
                     <span className="w-2.5 h-2.5 bg-black rounded-full"></span>
-                    Honor Intact
+                    Debt-Free
                   </span>
                 )}
               </div>
@@ -248,7 +248,7 @@ export default async function WalletPage() {
                 Account Standing
               </span>
               <span className={`text-xl font-black uppercase tracking-tight ${balance < 0 ? 'text-[#ff3333]' : 'text-[#00aa44]'}`}>
-                {balance < 0 ? 'Locked Out' : balance > 0 ? 'Surplus Credit' : 'Honor Intact'}
+                {balance < 0 ? 'Locked Out' : balance > 0 ? 'Surplus Credit' : 'Debt-Free'}
               </span>
             </div>
 
@@ -334,7 +334,7 @@ export default async function WalletPage() {
                     </p>
                   </div>
                   <a
-                    href="https://leetcode.com/problems/two-sum"
+                    href="https://leetcode.com/problemset/"
                     target="_blank"
                     rel="noreferrer"
                     className="nb-btn nb-btn-primary w-full py-3 text-center text-sm font-black uppercase tracking-wider block shadow-[3px_3px_0_0_#000]"
@@ -356,7 +356,7 @@ export default async function WalletPage() {
                     </p>
                   </div>
                   <a
-                    href="https://leetcode.com/problems/two-sum"
+                    href="https://leetcode.com/problemset/"
                     target="_blank"
                     rel="noreferrer"
                     className="nb-btn nb-btn-primary w-full py-3 text-center text-sm font-black uppercase tracking-wider block shadow-[3px_3px_0_0_#000]"
@@ -380,11 +380,11 @@ export default async function WalletPage() {
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="bg-[#00ff66] border-2 border-black w-6 h-6 flex items-center justify-center shadow-[2px_2px_0_0_#000] mt-0.5 shrink-0 text-black">✓</span>
-                  <span><span className="bg-[#00ff66] px-1 border-2 border-black shadow-[1px_1px_0_0_#000] mr-1">Capital Defended:</span> Solve in time to defend your capital, grow your streak, and pay $0.</span>
+                  <span><span className="bg-[#00ff66] px-1 border-2 border-black shadow-[1px_1px_0_0_#000] mr-1">Capital Defended:</span> If you complete the challenge, you defend your capital, grow your streak, and pay $0.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="bg-[#ff3333] border-2 border-black text-white w-6 h-6 flex items-center justify-center shadow-[2px_2px_0_0_#000] mt-0.5 shrink-0">✗</span>
-                  <span><span className="bg-black text-white px-1 border-2 border-black shadow-[1px_1px_0_0_#000] mr-1">Capital Lost:</span> If you run out of time or violate anti-cheat, you incur a debt penalty.</span>
+                  <span><span className="bg-black text-white px-1 border-2 border-black shadow-[1px_1px_0_0_#000] mr-1">Capital Lost:</span> If you fail the challenge, you incur a debt penalty.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="bg-[#ff3333] border-2 border-black text-white w-6 h-6 flex items-center justify-center shadow-[2px_2px_0_0_#000] mt-0.5 shrink-0">✗</span>

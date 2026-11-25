@@ -446,7 +446,7 @@ export default function ProblemWorkspace({
                   onClick={() => router.push('/wallet')}
                   className="nb-btn nb-btn-danger w-full py-4 text-xl tracking-[0.2em] mb-4"
                 >
-                  Honor Your Debt
+                  Pay Debt
                 </button>
               ) : (
                 <button

@@ -143,6 +143,16 @@ export default function AuthForm({ mode }: AuthFormProps) {
               {loading ? "AUTHENTICATING..." : isSignup ? "CREATE ACCOUNT" : "LOG IN"}
             </button>
 
+            {isSignup && (
+              <p className="text-[11px] text-neutral-600 font-medium text-center leading-tight pt-1">
+                By signing up, you certify you are 18+ and agree to our{" "}
+                <Link href="/terms" target="_blank" className="font-bold underline text-black hover:bg-[#ffcc00] px-0.5">
+                  Terms &amp; Policies
+                </Link>
+                .
+              </p>
+            )}
+
             {status && (
               <div
                 className={`text-xs font-bold uppercase p-2 border-2 border-black text-center ${

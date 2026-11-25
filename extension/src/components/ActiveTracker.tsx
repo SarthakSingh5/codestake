@@ -1,6 +1,5 @@
 import type { UIState, ChallengeContract } from '../types';
 import { LiveCountdownBadge } from './LiveCountdownBadge';
-import { API_BASE_URL } from '../config';
 
 interface Props {
   activeSessionMode?: string;
@@ -19,7 +18,7 @@ export function ActiveTracker({
   activeSessionId,
   gauntletContract,
   bloodPactContract,
-  userId,
+  userId: _userId,
   setUiState,
   onSyncState,
 }: Props) {
@@ -52,7 +51,7 @@ export function ActiveTracker({
               </span>
             ) : (
               <span className="text-[9px] font-black uppercase bg-black text-white px-1">
-                1-SHOT
+                1-SUBMIT
               </span>
             )}
             <span className="text-[8px] font-black uppercase bg-black text-white px-1 py-0.2">

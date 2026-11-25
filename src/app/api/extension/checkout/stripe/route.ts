@@ -41,7 +41,7 @@ export async function POST(req: Request) {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: 'CodeStake Honor Restoration',
+              name: 'CodeStake Debt Settlement',
               description: 'Clear your negative balance to return to the arena.',
             },
             unit_amount: Math.max(50, amountCents),

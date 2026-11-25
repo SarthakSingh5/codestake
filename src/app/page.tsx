@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 
 export const metadata = {
   title: "CodeStake",
-  description: "Compete. Solve. Win.",
+  description: "Automated Algorithmic Accountability & Interview Discipline.",
 };
 
 export default async function Home() {
@@ -29,12 +29,12 @@ export default async function Home() {
           </div>
 
           <h1 className="text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter text-black mb-8 leading-[0.9] uppercase">
-            <span className="block">Bet on</span>
-            <span className="block bg-[#00ff66] inline-block px-2 border-4 border-black shadow-[6px_6px_0_0_#000] mt-2 rotate-1">Yourself.</span>
+            <span className="block">Commit to</span>
+            <span className="block bg-[#00ff66] inline-block px-2 border-4 border-black shadow-[6px_6px_0_0_#000] mt-2 rotate-1">Your Grind.</span>
           </h1>
 
           <p className="text-xl md:text-2xl text-black font-medium max-w-xl mb-10 leading-relaxed border-l-8 border-[#ff3333] pl-6 bg-white p-4 shadow-[4px_4px_0_0_#000] border-y-4 border-r-4 border-y-black border-r-black">
-            Compete in high-stakes coding challenges. Solve complex algorithms, prove your skills, and win rewards. It's time to stake your claim.
+            Zero excuses. Pure algorithmic discipline. Enforce self-imposed commitment contracts on LeetCode with automated anti-cheat verification. Master your interview prep.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-6 w-full sm:w-auto">
@@ -43,7 +43,7 @@ export default async function Home() {
               href="/signup"
               className="nb-btn nb-btn-primary px-10 py-5 text-lg"
             >
-              Start Competing Now
+              Enter The Arena
             </Link>
             <Link
               id="btn-home-login"
@@ -52,17 +52,6 @@ export default async function Home() {
             >
               Sign In
             </Link>
-          </div>
-
-          <div className="mt-16 flex items-center gap-4 text-sm text-black font-bold uppercase tracking-widest bg-white border-4 border-black px-6 py-3 shadow-[4px_4px_0_0_#000]">
-            <div className="flex -space-x-2">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="w-10 h-10 border-2 border-black bg-[#00ff66] flex items-center justify-center text-lg z-[4-i] shadow-sm">
-                  {['👩‍💻', '👨‍💻', '🚀', '🔥'][i]}
-                </div>
-              ))}
-            </div>
-            <p>Join <span className="text-[#ff3333] text-lg">1,000+</span> developers.</p>
           </div>
         </div>
 
@@ -92,7 +81,7 @@ export default async function Home() {
 
             <div className="mt-8 border-t-4 border-black pt-6 bg-[#ffcc00] -mx-8 px-8 -mb-8 pb-8 border-b-0 border-l-0 border-r-0">
               <blockquote className="text-black font-black uppercase text-xl leading-snug">
-                "The only way to win is to raise the stakes."
+                "True mastery requires skin in the game."
               </blockquote>
               <p className="mt-2 text-sm font-bold">— CodeStake Philosophy</p>
             </div>

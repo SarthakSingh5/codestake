@@ -222,26 +222,39 @@ async function resetMonacoBoilerplate(targetSlug, attempt = 0) {
     mainModel.setValue(boilerplate);
     console.log("[CodeStake] Editor reset to official boilerplate via GraphQL.");
 
-    // LeetCode Draft Restore Shield:
-    // LeetCode's client often asynchronously restores old code drafts ~500-1500ms after Monaco mounts.
-    // If LeetCode overrides our clean boilerplate with a previously saved solution, re-apply boilerplate!
-    let draftsBlocked = 0;
-    const disposable = mainModel.onDidChangeContent(() => {
-      if (isResettingBoilerplate) return;
-      const currentVal = mainModel.getValue();
-      // If code changed abruptly to something much longer than boilerplate (draft auto-restore)
-      if (draftsBlocked < 2 && currentVal && currentVal !== boilerplate && currentVal.length > boilerplate.length + 30) {
-        draftsBlocked++;
-        console.warn("[CodeStake] Blocked LeetCode auto-draft restore. Enforcing clean boilerplate.");
-        mainModel.setValue(boilerplate);
+    // Smart Cursor Placement: Position cursor inside the method body instead of Line 1, Col 1
+    try {
+      const editors = window.monaco?.editor?.getEditors?.() || [];
+      const activeEditor = editors.find(ed => ed.getModel() === mainModel) || editors[0];
+      if (activeEditor) {
+        const lines = boilerplate.split('\n');
+        let targetLine = lines.length;
+        let targetCol = 1;
+
+        for (let i = 0; i < lines.length; i++) {
+          const l = lines[i];
+          if (l.includes('def ') || l.includes('function') || (l.includes('(') && l.includes(')') && (l.includes('{') || l.includes(':')))) {
+            if (i + 1 < lines.length) {
+              targetLine = i + 2; // Monaco is 1-based line indexing
+              targetCol = (lines[i + 1] || '').length + 1;
+            } else {
+              targetLine = i + 1;
+              targetCol = l.length + 1;
+            }
+            break;
+          }
+        }
+
+        activeEditor.setPosition({ lineNumber: targetLine, column: targetCol });
+        activeEditor.revealPositionInCenterIfOutsideViewport({ lineNumber: targetLine, column: targetCol });
+        activeEditor.focus();
+        console.log(`[CodeStake] Placed cursor at line ${targetLine}, col ${targetCol}`);
       }
-    });
+    } catch (cursorErr) {
+      console.warn("[CodeStake] Smart cursor error:", cursorErr);
+    }
 
-    setTimeout(() => {
-      isResettingBoilerplate = false;
-      disposable.dispose();
-    }, 3000);
-
+    isResettingBoilerplate = false;
   } catch (e) {
     isResettingBoilerplate = false;
     console.error("[CodeStake] Failed to fetch boilerplate:", e);

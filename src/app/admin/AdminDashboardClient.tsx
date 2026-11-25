@@ -1085,7 +1085,7 @@ export default function AdminDashboardClient({
                       Adjust Persona Score (Standing)
                     </span>
                     <p className="text-[11px] text-gray-600 font-bold mb-3">
-                      Current score: <span className="font-mono font-black">{selectedUser.personaScore}</span>. Affects dialogues, trust tiers, and honor standings.
+                      Current score: <span className="font-mono font-black">{selectedUser.personaScore}</span>. Affects dialogues, trust tiers, and standing.
                     </p>
 
                     <div className="flex items-center gap-2 flex-wrap">

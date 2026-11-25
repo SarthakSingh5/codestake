@@ -111,10 +111,10 @@ export default function LedgerClient({ items }: { items: LedgerItem[] }) {
           <p className="text-xs text-gray-600 max-w-sm mx-auto mb-6">
             {filter === "defended"
               ? "You haven't defended any stakes yet. Win challenges on LeetCode to build your defense wall!"
-              : "No capital lost! Your honor is untarnished."}
+              : "No capital lost! Zero debt on record."}
           </p>
           <a
-            href="https://leetcode.com/problems/two-sum"
+            href="https://leetcode.com/problemset/"
             target="_blank"
             rel="noreferrer"
             className="nb-btn nb-btn-primary py-3 px-6 text-sm font-black uppercase tracking-wider inline-block shadow-[3px_3px_0_0_#000]"

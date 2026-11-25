@@ -74,8 +74,8 @@ export async function POST(request: Request) {
     let expiresAt: Date;
     
     if (mode === 'blood_pact') {
-      // Aligns to 11:59:59 PM in user's detected local timezone (with grace period if after 8 PM)
-      expiresAt = getLocalMidnightUTC(timeZone || 'UTC', 0, true);
+      // Counting starts today, but first deadline is tomorrow at 11:59:59 PM (local midnight)
+      expiresAt = getLocalMidnightUTC(timeZone || 'UTC', 1, false);
     } else if (mode === 'gauntlet') {
       const durationMinutes = body.durationMinutes !== undefined && body.durationMinutes !== null ? body.durationMinutes : 180;
       expiresAt = new Date();

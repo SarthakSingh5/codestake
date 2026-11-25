@@ -15,9 +15,8 @@ export function LiveCountdownBadge({ expiresAt, style = 'digital', className = '
 
   return (
     <span
-      className={`font-mono font-black tabular-nums inline-flex items-center gap-1 ${
-        isExpired ? 'text-gray-500 bg-gray-200' : 'text-[#ff3333]'
-      } ${className}`}
+      className={`font-mono font-black tabular-nums inline-flex items-center gap-1 ${isExpired ? 'text-gray-500 bg-gray-200' : 'text-[#ff3333]'
+        } ${className}`}
     >
       <span>{prefix}</span>
       <span>{formatted}</span>

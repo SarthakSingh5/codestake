@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Footer from "@/app/components/Footer";
 
 export const metadata: Metadata = {
-  title: "CodeStake",
-  description: "High-Stakes Coding Arena",
+  title: "CodeStake | High-Stakes Coding Arena",
+  description: "Put real stakes on your coding discipline with behavioral commitment contracts.",
 };
 
 export default function RootLayout({
@@ -21,7 +22,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <main className="flex-1 flex flex-col">{children}</main>
+        <Footer />
+      </body>
     </html>
   );
 }

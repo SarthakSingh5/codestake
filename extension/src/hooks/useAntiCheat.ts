@@ -32,7 +32,6 @@ export function useAntiCheat(
     };
 
     // 2. Strict Keydown Block for Ctrl/Cmd + V, C, X (Cuts off Monaco before it pastes!)
-    let keyPressTimestamps: number[] = [];
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isAntiCheatActive) return;
 
@@ -55,36 +54,6 @@ export function useAntiCheat(
             }
           }));
           return;
-        }
-      }
-
-      // Keystroke Velocity Heuristic (Anti-Script / LLM Macro)
-      const now = Date.now();
-      keyPressTimestamps.push(now);
-
-      if (keyPressTimestamps.length > 10) {
-        keyPressTimestamps.shift();
-      }
-
-      if (keyPressTimestamps.length === 10) {
-        const timeSpan = keyPressTimestamps[9] - keyPressTimestamps[0];
-        // 10 characters in less than 70ms = 140+ chars/sec = impossible typing speed (bot/macro injection)
-        if (timeSpan < 70) {
-          console.warn("Anti-cheat triggered: Keystroke anomaly detected.");
-          keyPressTimestamps = [];
-
-          // Revert changes back to official clean boilerplate without losing money
-          window.postMessage({ type: 'CODESTAKE_CLEAR_EDITOR' }, '*');
-
-          window.dispatchEvent(new CustomEvent('CODESTAKE_POPUP', {
-            detail: {
-              type: 'warning',
-              title: hasActiveMoneyStake ? '🚨 SCRIPT / MACRO DETECTED' : '⚡ SCRIPT INJECTION DETECTED',
-              text: hasActiveMoneyStake
-                ? 'Superhuman typing / macro injection detected. All code has been wiped back to boilerplate. Your timer is still ticking!'
-                : 'Superhuman typing speed detected. Code has been reset to official boilerplate.'
-            }
-          }));
         }
       }
     };
@@ -134,7 +103,6 @@ export function useAntiCheat(
     window.addEventListener("paste", blockClipboard, true);
     window.addEventListener("cut", blockClipboard, true);
     window.addEventListener("keydown", handleKeyDown, true);
-    document.addEventListener("keydown", handleKeyDown, true);
     window.addEventListener("drop", blockDragDrop, true);
     document.addEventListener("drop", blockDragDrop, true);
     window.addEventListener("dragover", blockDragOver, true);
@@ -148,7 +116,6 @@ export function useAntiCheat(
       window.removeEventListener("paste", blockClipboard, true);
       window.removeEventListener("cut", blockClipboard, true);
       window.removeEventListener("keydown", handleKeyDown, true);
-      document.removeEventListener("keydown", handleKeyDown, true);
       window.removeEventListener("drop", blockDragDrop, true);
       document.removeEventListener("drop", blockDragDrop, true);
       window.removeEventListener("dragover", blockDragOver, true);

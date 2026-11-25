@@ -18,7 +18,7 @@ export default async function ExtensionPage() {
           </h1>
         </div>
         <p className="mx-auto mt-4 max-w-2xl text-xl text-black font-bold uppercase tracking-widest bg-white border-4 border-black p-4 shadow-[4px_4px_0_0_#000] -rotate-1 mb-10">
-          Install the official Chrome Extension to put real money on the line while practicing algorithms directly on LeetCode.com.
+          Install the official Chrome Extension to practice algorithms with automated accountability directly on LeetCode.com.
         </p>
 
         {user ? (
@@ -31,7 +31,7 @@ export default async function ExtensionPage() {
               We have securely synced your CodeStake account with your Chrome Extension.
             </p>
             <a
-              href="https://leetcode.com/problems/two-sum"
+              href="https://leetcode.com/problemset/"
               target="_blank"
               rel="noreferrer"
               className="nb-btn nb-btn-primary w-full py-4 text-xl inline-block"

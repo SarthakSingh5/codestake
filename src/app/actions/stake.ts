@@ -35,7 +35,7 @@ export async function createStakeSession(problemId: string, amountCents: number,
     .single();
 
   if (!wallet || wallet.balance_cents < 0) {
-    throw new Error("You have broken the Code. Honor your debt to return to the arena.");
+    throw new Error("You have an unsettled debt. Pay your debt to return to the arena.");
   }
 
   // 3. No upfront escrow! The user only pays if they fail.
