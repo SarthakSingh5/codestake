@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import AuthForm from "../components/AuthForm";
 
 export const metadata = {
@@ -6,5 +7,9 @@ export const metadata = {
 };
 
 export default function LoginPage() {
-  return <AuthForm mode="login" />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#f8f8f8]" />}>
+      <AuthForm mode="login" />
+    </Suspense>
+  );
 }

@@ -32,7 +32,7 @@ export async function proxy(request: NextRequest) {
     }
     
     if (!isBanned && isBannedRoute) {
-      return NextResponse.redirect(new URL('/problems', request.url));
+      return NextResponse.redirect(new URL('/extension', request.url));
     }
   }
 
@@ -42,7 +42,7 @@ export async function proxy(request: NextRequest) {
     // Check role to decide where to send them
     const role = await getUserRole(supabase, user.id);
 
-    const destination = role === "admin" ? "/admin" : "/";
+    const destination = role === "admin" ? "/admin" : "/extension";
     return NextResponse.redirect(new URL(destination, request.url));
   }
 
